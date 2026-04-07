@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>Supernova Lounge Bar</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:#0E0E0E;color:#F5F0E8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:430px;margin:0 auto;min-height:100vh}
+  :root{
+    --gold:#C9A84C;--dark:#0E0E0E;--surface:#1A1A1A;--surface2:#242424;
+    --border:#2E2E2E;--text:#F5F0E8;--muted:#888;--green:#2ECC71;
+    --red:#E74C3C;--pink:#C0395A;
+  }
+  input,button{font-family:inherit;outline:none}
+  button{cursor:pointer}
+
+  /* Header */
+  .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .logo-wrap{display:flex;align-items:center;gap:8px}
+  .logo-text{font-size:12px;font-weight:700;color:var(--gold);letter-spacing:1px}
+  .logo-sub{font-size:9px;color:var(--muted)}
+  .hdr-right{display:flex;gap:6px;align-items:center}
+  .waiter-badge{font-size:11px;color:var(--muted)}
+  .lang-btn,.icon-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:12px}
+  .icon-btn{color:var(--red)}
+
+  /* Nav */
+  .nav{display:flex;background:var(--surface);border-top:1px solid var(--border);position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:100}
+  .nav-btn{flex:1;padding:10px 4px;background:none;border:none;color:var(--muted);font-size:11px;border-top:2px solid transparent;transition:color .2s}
+  .nav-btn.active{color:var(--gold);border-top-color:var(--gold)}
+  .nav-btn .nav-icon{font-size:20px;display:block}
+
+  /* Content */
+  .content{padding:14px;padding-bottom:80px}
+
+  /* Cards */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+
+  /* Buttons */
+  .btn{border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:500;width:100%;display:block;text-align:center;margin-bottom:8px}
+  .btn-gold{background:var(--gold);color:#000}
+  .btn-pink{background:var(--pink);color:#fff}
+  .btn-green{background:var(--green);color:#fff}
+  .btn-outline{background:none;border:1px solid var(--border);color:var(--text)}
+  .btn-outline-red{background:none;border:1px solid var(--red);color:var(--red)}
+  .btn-outline-gold{background:none;border:1px solid var(--gold);color:var(--gold);background:var(--surface2)}
+  .btn-sm{padding:6px 10px;font-size:12px;border-radius:7px;width:auto;flex:1}
+
+  /* Input */
+  .inp{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:15px;color:var(--text);width:100%}
+  .inp:focus{border-color:var(--gold)}
+  .lbl{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
+
+  /* Toggle */
+  .toggle{display:flex;gap:8px;margin-bottom:14px}
+  .toggle-btn{flex:1;padding:8px;border-radius:8px;border:none;font-size:13px;cursor:pointer}
+  .toggle-btn.active{background:var(--gold);color:#000}
+  .toggle-btn:not(.active){background:var(--surface2);color:var(--muted)}
+
+  /* Status badge */
+  .badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+  .badge-occupied{background:#2A2000;color:var(--gold)}
+  .badge-reserved{background:#2A0010;color:var(--pink)}
+  .badge-free{background:#0A1A0A;color:var(--green)}
+
+  /* Login */
+  .login-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+  .pin-dots{display:flex;gap:14px;margin-bottom:36px}
+  .pin-dot{width:13px;height:13px;border-radius:50%;background:var(--border);transition:background .15s}
+  .pin-dot.filled{background:var(--gold)}
+  .pin-dot.error{background:var(--red)}
+  .pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:260px}
+  .pin-btn{background:rgba(255,255,255,0.08);border:none;border-radius:50%;width:72px;height:72px;font-size:24px;font-weight:500;color:var(--text);margin:0 auto;display:flex;align-items:center;justify-content:center}
+  .pin-btn:active{background:rgba(255,255,255,0.16)}
+  .pin-btn.del{background:none;font-size:22px;color:var(--muted)}
+
+  /* Floor plan */
+  #floor-svg{width:100%;max-width:360px;display:block;margin:0 auto}
+
+  /* Metric */
+  .metric{background:var(--surface2);border-radius:10px;padding:12px 14px;flex:1;text-align:center}
+  .metric-label{font-size:11px;color:var(--muted);margin-bottom:4px}
+  .metric-val{font-size:22px;font-weight:500}
+
+  /* Search */
+  .search-wrap{position:relative;flex:1}
+  .search-wrap .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px}
+  .search-wrap .inp{padding-left:36px}
+
+  /* Toast */
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+  .toast.show{opacity:1}
+
+  /* Loader */
+  .loader{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--muted);font-size:14px}
+
+  /* Discount buttons */
+  .disc-btn{padding:8px 16px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);color:var(--muted);font-size:15px;font-weight:500;cursor:pointer}
+  .disc-btn.active{border-color:var(--gold);background:#1A1500;color:var(--gold)}
+
+  /* Receipt */
+  .receipt{background:#fff;color:#000;border-radius:12px;padding:20px;font-family:monospace;max-width:320px;margin:0 auto 18px}
+  .receipt-title{font-size:18px;font-weight:700;text-align:center}
+  .receipt-sub{font-size:10px;color:#555;letter-spacing:2px;text-align:center}
+  .receipt-divider{border-top:1px dashed #ccc;margin:10px 0}
+  .receipt-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
+  .receipt-total{display:flex;justify-content:space-between;font-weight:700;font-size:16px;margin-top:4px}
+
+  /* Pay method */
+  .pay-btn{flex:1;padding:12px;border-radius:10px;border:2px solid var(--border);background:var(--surface);color:var(--muted);font-size:14px;cursor:pointer}
+  .pay-btn.active{border-color:var(--gold);background:#1A1500;color:var(--gold)}
+
+  /* Change display */
+  .change-box{display:flex;justify-content:space-between;background:#0A1A0A;border-radius:8px;padding:10px 14px;margin-top:8px}
+
+  /* Scrollable cats */
+  .cat-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
+  .cat-scroll::-webkit-scrollbar{display:none}
+  .cat-btn{flex-shrink:0;padding:7px 12px;border-radius:8px;border:none;font-size:12px;cursor:pointer}
+  .cat-btn.active{background:var(--gold);color:#000}
+  .cat-btn:not(.active){background:var(--surface2);color:var(--muted)}
+
+  /* Bron counters */
+  .bron-counters{display:flex;gap:10px;border-top:1px solid var(--border);padding-top:12px;margin-top:12px}
+  .bron-counter{flex:1;text-align:center}
+  .bron-counter-label{font-size:11px}
+  .bron-counter-val{font-size:18px;font-weight:500}
+
+  /* Analytics export */
+  .date-range{display:flex;gap:10px;margin-bottom:14px}
+  .date-range .inp{font-size:13px;padding:8px 10px}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const { createClient } = supabase;
+const sb = createClient(
+  'https://ljkwjvhffrmhbagkdwrz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqa3dqdmhmZnJtaGJhZ2tkd3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NjE5MzMsImV4cCI6MjA5MTEzNzkzM30.BN8jM6D0fDvTftJptmjqeEnqJ5z1UuN7oQykaxKeFj0'
+);
+
+// ── State ──
+let lang = 'ru';
+let screen = 'login'; // login | main
+let waiter = null;
+let tables = [];
+let tab = 'tables';
+let viewMode = 'schema';
+let selTable = null;
+let subTables = null;
+
+// Menu search
+let menuSearch = '';
+let menuCat = 'shisha';
+let addingTo = null;
+
+// Payment flow
+let расчётTable = null;
+let billTable = null;
+let payMethod = null;
+let cashGiven = '';
+
+// Bron
+let bronTab = 'list'; // list | new
+let bronTableId = null;
+let bronForm = {name:'',phone:'',guests:'2',time:'19:00',note:''};
+let searchBron = '';
+
+// Table detail
+let tableDetailId = null;
+let tableDetailTab = 'info';
+
+// Analytics
+let analyticsTab = 'today';
+let analyticsFrom = '';
+let analyticsTo = '';
+let analyticsData = null;
+
+// ── Menu data ──
+const MENU = {
+  shisha:[
+    {id:'s1',ru:'Классич. кальян (12-17ч)',en:'Classic Hookah (12-17h)',price:1000},
+    {id:'s2',ru:'Премиум кальян (12-17ч)',en:'Premium Hookah (12-17h)',price:1150},
+    {id:'s3',ru:'Классич. кальян (с 17ч)',en:'Classic Hookah (17h+)',price:1500},
+    {id:'s4',ru:'Премиум кальян (с 17ч)',en:'Premium Hookah (17h+)',price:1650},
+    {id:'s5',ru:'Замена чаши (классич.)',en:'Bowl change (Classic)',price:1000},
+    {id:'s6',ru:'Замена чаши (премиум)',en:'Bowl change (Premium)',price:1150},
+  ],
+  beer:[
+    {id:'b1',ru:'Лагер 0,33 л',en:'Lager 0.33L',price:320},
+    {id:'b2',ru:'Лагер 0,5 л',en:'Lager 0.5L',price:400},
+    {id:'b3',ru:'Корона 0,33 л',en:'Corona 0.33L',price:350},
+    {id:'b4',ru:'Крон Бланш',en:'Kron Blansh',price:280},
+    {id:'b5',ru:'Шпатен',en:'Spaten',price:300},
+    {id:'b6',ru:'Эфес',en:'Efes',price:300},
+    {id:'b7',ru:'Тёмное',en:'Dark Beer',price:350},
+  ],
+  lemonade:[
+    {id:'l1',ru:'Клубника-Лимон 0,4л',en:'Strawberry-Lemon 0.4L',price:390},
+    {id:'l2',ru:'Клубника-Фейхоа 0,4л',en:'Strawberry-Feijoa 0.4L',price:450},
+    {id:'l3',ru:'Манго-Маракуйя 0,4л',en:'Mango-Passion 0.4L',price:400},
+    {id:'l4',ru:'Цитрусовый микс 0,4л',en:'Citrus Mix 0.4L',price:390},
+    {id:'l5',ru:'Малина-Личи 0,4л',en:'Raspberry-Lychee 0.4L',price:430},
+    {id:'l6',ru:'Манго-Маракуйя 1л',en:'Mango-Passion 1L',price:820},
+    {id:'l7',ru:'Клубника-Фейхоа 1л',en:'Strawberry-Feijoa 1L',price:850},
+    {id:'l8',ru:'Цитрусовый микс 1л',en:'Citrus Mix 1L',price:770},
+    {id:'l9',ru:'Манго-Личи 1л',en:'Mango-Lychee 1L',price:850},
+    {id:'l10',ru:'Ягодное комбо 1л',en:'Berry Combo 1L',price:770},
+  ],
+  drinks:[
+    {id:'d1',ru:'Кока-Кола 0,33',en:'Coca-Cola 0.33',price:280},
+    {id:'d2',ru:'Кока-Кола (Добрый)',en:'Coca-Cola (Dobry)',price:200},
+    {id:'d3',ru:'Лимон-Лайм',en:'Lemon-Lime',price:200},
+    {id:'d4',ru:'Добрый Апельсин',en:'Dobry Orange',price:200},
+    {id:'d5',ru:'Сок 0,2л',en:'Juice 0.2L',price:220},
+    {id:'d6',ru:'Сок 1л',en:'Juice 1L',price:450},
+    {id:'d7',ru:'Вода Джермук',en:'Water Jermuk',price:260},
+    {id:'d8',ru:'Вода 0,33л',en:'Water 0.33L',price:200},
+    {id:'d9',ru:'Энергетик BURN',en:'Energy BURN',price:220},
+    {id:'d10',ru:'Энергетик Red Bull',en:'Energy Red Bull',price:350},
+  ],
+  coffee:[
+    {id:'c1',ru:'Эспрессо',en:'Espresso',price:190},
+    {id:'c2',ru:'Американо',en:'Americano',price:220},
+    {id:'c3',ru:'Капучино S',en:'Cappuccino S',price:230},
+    {id:'c4',ru:'Капучино L',en:'Cappuccino L',price:260},
+    {id:'c5',ru:'Латте',en:'Latte',price:300},
+    {id:'c6',ru:'Ассам 0,5л',en:'Assam 0.5L',price:430},
+    {id:'c7',ru:'Ассам 1л',en:'Assam 1L',price:550},
+    {id:'c8',ru:'Эл Грей 0,5л',en:'Earl Grey 0.5L',price:430},
+    {id:'c9',ru:'Эл Грей 1л',en:'Earl Grey 1L',price:550},
+    {id:'c10',ru:'Сенча 0,5л',en:'Sencha 0.5L',price:430},
+    {id:'c11',ru:'Жасмин 0,5л',en:'Jasmine 0.5L',price:430},
+    {id:'c12',ru:'Травяной 0,5л',en:'Herbal 0.5L',price:430},
+    {id:'c13',ru:'Травяной 1л',en:'Herbal 1L',price:600},
+    {id:'c14',ru:'Лимон-Имбирь-Мёд 1л',en:'Lemon-Ginger-Honey 1L',price:750},
+    {id:'c15',ru:'Груша-Специи 1л',en:'Pear-Spices 1L',price:720},
+    {id:'c16',ru:'Облепиха-Апельсин 1л',en:'Buckthorn-Orange 1L',price:790},
+    {id:'c17',ru:'Ягодный чай 1л',en:'Berry Tea 1L',price:790},
+    {id:'c18',ru:'Китайский чай проливом',en:'Chinese Tea',price:800},
+    {id:'c19',ru:'Добавки к чаю',en:'Tea extras',price:80},
+  ],
+  snacks:[
+    {id:'n1',ru:'Сет солёный S',en:'Salty Set S',price:630},
+    {id:'n2',ru:'Сет солёный M',en:'Salty Set M',price:910},
+    {id:'n3',ru:'Сет фруктовый S',en:'Fruit Set S',price:580},
+    {id:'n4',ru:'Сет фруктовый M',en:'Fruit Set M',price:750},
+  ],
+};
+const MENU_CATS = [
+  {k:'shisha',  ru:'🪔 Кальяны',  en:'🪔 Shisha'},
+  {k:'beer',    ru:'🍺 Пиво',     en:'🍺 Beer'},
+  {k:'lemonade',ru:'🍹 Лимонады',en:'🍹 Lemonade'},
+  {k:'drinks',  ru:'🥤 Напитки',  en:'🥤 Drinks'},
+  {k:'coffee',  ru:'☕ Кофе/Чай', en:'☕ Coffee/Tea'},
+  {k:'snacks',  ru:'🥜 Закуски',  en:'🥜 Snacks'},
+];
+const NO_DISC = ['shisha'];
+const DISCOUNTS = [10,15,20,30,50];
+
+// ── Helpers ──
+const $ = id => document.getElementById(id);
+const T = k => lang === 'ru' ? ({
+  tables:'Столики', bron:'Бронь', analytics:'Аналитика',
+  free:'Свободен', occupied:'Занят', reserved:'Забронирован',
+  back:'Назад', save:'Сохранить', cancel:'Отмена',
+  addOrder:'Добавить заказ', checkout:'Рассчитать',
+  printBill:'Печать чека', paid:'Оплачено ✓',
+  cash:'Наличные', card:'Карта', change:'Сдача',
+  discount:'Скидка', total:'Итого', waiter:'Официант',
+  table:'Стол', guests:'Гостей', arrival:'Время прихода',
+  note:'Примечание', phone:'Телефон', guestName:'Имя гостя',
+  newBron:'Новая бронь', openTable:'Открыть (сели гости)',
+  cancelBron:'Отменить бронь', noBookings:'Нет броней',
+  revenue:'Выручка', orders:'Заказы', today:'Сегодня',
+  week:'Неделя', month:'Месяц', year:'Год', period:'Период',
+  export:'Экспорт', searchMenu:'Поиск по меню...',
+  notEnough:'Недостаточно', schema:'Схема', list:'Список',
+  tableDetail:'Детали стола', bookings:'Заявки',
+  cashReceived:'Купюра клиента (₽)', liveStatus:'Сейчас в зале',
+  busy:'Занято', freeCount:'Свободно', reserved2:'Бронь',
+  salesByWaiter:'Продажи по официантам', bonus:'Бонус 2,5%',
+  exportCSV:'Экспорт CSV', exportPDF:'Экспорт PDF',
+  from:'С', to:'По', applyDiscount:'Применить скидку?',
+  discNote:'(не распространяется на кальяны)',
+  open:'Открыть', late:'Ожидаем', openCount:'Открыто', newCount:'Новые',
+}[k]||k) : ({
+  tables:'Tables', bron:'Bookings', analytics:'Analytics',
+  free:'Free', occupied:'Busy', reserved:'Reserved',
+  back:'Back', save:'Save', cancel:'Cancel',
+  addOrder:'Add Order', checkout:'Checkout',
+  printBill:'Print Bill', paid:'Paid ✓',
+  cash:'Cash', card:'Card', change:'Change',
+  discount:'Discount', total:'Total', waiter:'Waiter',
+  table:'Table', guests:'Guests', arrival:'Arrival time',
+  note:'Note', phone:'Phone', guestName:'Guest name',
+  newBron:'New Booking', openTable:'Open (guests arrived)',
+  cancelBron:'Cancel booking', noBookings:'No bookings',
+  revenue:'Revenue', orders:'Orders', today:'Today',
+  week:'Week', month:'Month', year:'Year', period:'Period',
+  export:'Export', searchMenu:'Search menu...',
+  notEnough:'Not enough', schema:'Map', list:'List',
+  tableDetail:'Table detail', bookings:'Bookings',
+  cashReceived:'Cash received (₽)', liveStatus:'Live status',
+  busy:'Busy', freeCount:'Free', reserved2:'Reserved',
+  salesByWaiter:'Sales per waiter', bonus:'Bonus 2.5%',
+  exportCSV:'Export CSV', exportPDF:'Export PDF',
+  from:'From', to:'To', applyDiscount:'Apply discount?',
+  discNote:'(not applicable to hookahs)',
+  open:'Open', late:'Late', openCount:'Open', newCount:'New',
+}[k]||k);
+
+const toast = (msg, dur=2500) => {
+  const el = $('toast'); el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+};
+
+const tableTotal = (t, withDisc=false) => {
+  const raw = (t.orders||[]).reduce((s,o)=>s+o.price*o.qty,0);
+  if(!withDisc||!t.discount) return raw;
+  const disc = (t.orders||[]).filter(o=>!NO_DISC.includes(o.category)).reduce((s,o)=>s+o.price*o.qty,0);
+  return Math.round((raw-disc)+disc*(1-t.discount/100));
+};
+
+const statusColor = s => s==='occupied'?'var(--gold)':s==='reserved'?'var(--pink)':'var(--green)';
+const statusBadge = s => `<span class="badge badge-${s}">${T(s==='occupied'?'occupied':s==='reserved'?'reserved':'free')}</span>`;
+
+// ── Supabase realtime ──
+async function loadTables() {
+  const {data} = await sb.from('tables').select('*, orders(*)').order('id');
+  if(data) {
+    // Attach brons
+    const {data:brons} = await sb.from('brons').select('*').eq('status','active');
+    tables = data.map(t => ({
+      ...t,
+      orders: t.orders||[],
+      brons: (brons||[]).filter(b=>b.table_id===t.id)
+    }));
+    render();
+  }
+}
+
+function subscribeRealtime() {
+  subTables = sb.channel('tables-channel')
+    .on('postgres_changes',{event:'*',schema:'public'},(payload)=>{
+      loadTables();
+    }).subscribe();
+}
+
+// ── Login ──
+async function tryLogin(p) {
+  const {data:ws} = await sb.from('waiters').select('*').eq('pin',p).eq('is_active',true);
+  if(!ws||ws.length===0) return false;
+  waiter = ws[0];
+  return true;
+}
+
+// ── DB Actions ──
+async function dbAddOrder(tableId, item, cat) {
+  await sb.from('orders').insert({
+    table_id:tableId, waiter_id:waiter.id,
+    item_id:item.id, item_name_ru:item.ru, item_name_en:item.en,
+    category:cat, price:item.price, qty:1
+  });
+  await sb.from('tables').update({status:'occupied',waiter_id:waiter.id}).eq('id',tableId);
+  await loadTables();
+}
+
+async function dbRemoveOrder(orderId, tableId) {
+  await sb.from('orders').delete().eq('id',orderId);
+  const t = tables.find(t=>t.id===tableId);
+  const remaining = (t.orders||[]).filter(o=>o.id!==orderId);
+  if(remaining.length===0){
+    await sb.from('tables').update({status:'free',waiter_id:null,discount:0}).eq('id',tableId);
+  }
+  await loadTables();
+}
+
+async function dbSetDiscount(tableId, pct) {
+  await sb.from('tables').update({discount:pct}).eq('id',tableId);
+  await loadTables();
+}
+
+async function dbConfirmPay(tableId, method, raw, final, disc, given, chg) {
+  const t = tables.find(t=>t.id===tableId);
+  await sb.from('payments').insert({
+    table_id:tableId, waiter_id:t.waiter_id||waiter.id,
+    total_raw:raw, total_final:final, discount:disc,
+    payment_method:method,
+    cash_given:method==='cash'?given:null,
+    change_given:method==='cash'?chg:null
+  });
+  await sb.from('orders').delete().eq('table_id',tableId);
+  await sb.from('tables').update({status:'free',waiter_id:null,discount:0}).eq('id',tableId);
+  await loadTables();
+}
+
+async function dbSaveBron(tableId, form) {
+  await sb.from('brons').insert({
+    table_id:tableId, guest_name:form.name, guest_phone:form.phone,
+    guests_count:parseInt(form.guests)||1, arrival_time:form.time,
+    note:form.note, status:'active'
+  });
+  await sb.from('tables').update({status:'reserved'}).eq('id',tableId);
+  await loadTables();
+}
+
+async function dbOpenTable(tableId) {
+  await sb.from('brons').update({status:'opened'}).eq('table_id',tableId).eq('status','active');
+  await sb.from('tables').update({status:'occupied',waiter_id:waiter.id}).eq('id',tableId);
+  await loadTables();
+}
+
+async function dbCancelBron(bronId, tableId) {
+  await sb.from('brons').update({status:'cancelled'}).eq('id',bronId);
+  const t = tables.find(t=>t.id===tableId);
+  const remaining = (t.brons||[]).filter(b=>b.id!==bronId);
+  if(remaining.length===0){
+    await sb.from('tables').update({status:'free'}).eq('id',tableId);
+  }
+  await loadTables();
+}
+
+async function loadAnalytics(from, to) {
+  const {data:payments} = await sb.from('payments')
+    .select('*, waiters(name)')
+    .gte('paid_at', from+'T00:00:00')
+    .lte('paid_at', to+'T23:59:59')
+    .order('paid_at',{ascending:false});
+  analyticsData = payments||[];
+  renderAnalytics();
+}
+
+function exportCSV() {
+  if(!analyticsData) return;
+  const rows = [['Date','Table','Waiter','Total','Discount','Method']];
+  analyticsData.forEach(p => {
+    rows.push([
+      new Date(p.paid_at).toLocaleString(),
+      p.table_id, p.waiters?.name||'',
+      p.total_final, p.discount+'%', p.payment_method
+    ]);
+  });
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download = 'supernova_analytics.csv';
+  a.click();
+}
+
+// ── RENDER ──
+function render() {
+  if(screen==='login'){ renderLogin(); return; }
+  renderMain();
+}
+
+function renderLogin() {
+  $('app').innerHTML = `
+  <div class="login-wrap">
+    <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:32px">
+      ${logoSVG(80)}
+      <div style="font-size:24px;font-weight:700;color:var(--gold);letter-spacing:3px;margin-top:12px">SUPERNOVA</div>
+      <div style="font-size:11px;color:var(--muted);letter-spacing:4px">LOUNGE BAR</div>
+    </div>
+    <div style="font-size:15px;color:var(--text);margin-bottom:20px">${lang==='ru'?'Введите PIN':'Enter PIN'}</div>
+    <div class="pin-dots">
+      ${[0,1,2,3].map(i=>`<div class="pin-dot" id="dot${i}"></div>`).join('')}
+    </div>
+    <div style="width:260px">
+      <div class="pin-grid" style="margin-bottom:14px">
+        ${['1','2','3','4','5','6','7','8','9'].map(d=>`<button class="pin-btn" onclick="pinPress('${d}')">${d}</button>`).join('')}
+      </div>
+      <div class="pin-grid">
+        <div></div>
+        <button class="pin-btn" onclick="pinPress('0')">0</button>
+        <button class="pin-btn del" onclick="pinPress('del')">⌫</button>
+      </div>
+    </div>
+    <button class="lang-btn" style="margin-top:24px" onclick="toggleLang()">${lang==='ru'?'EN':'RU'}</button>
+  </div>`;
+  window._pinVal = '';
+}
+
+let _pinVal = '';
+function pinPress(d) {
+  if(d==='del'){ _pinVal=_pinVal.slice(0,-1); updateDots(); return; }
+  _pinVal += d; updateDots();
+  if(_pinVal.length===4) doLogin();
+}
+function updateDots(err=false) {
+  for(let i=0;i<4;i++){
+    const dot=$('dot'+i);
+    if(!dot) return;
+    dot.classList.toggle('filled',i<_pinVal.length&&!err);
+    dot.classList.toggle('error',i<_pinVal.length&&err);
+  }
+}
+async function doLogin() {
+  const ok = await tryLogin(_pinVal);
+  if(ok){ screen='main'; await loadTables(); subscribeRealtime(); }
+  else { updateDots(true); setTimeout(()=>{ _pinVal=''; updateDots(); },700); }
+}
+
+function toggleLang(){ lang=lang==='ru'?'en':'ru'; render(); }
+
+function logoSVG(size=26) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="50" fill="#0a0a0a"/>
+    <ellipse cx="38" cy="72" rx="22" ry="14" fill="#e8e8e8"/>
+    <ellipse cx="58" cy="76" rx="16" ry="10" fill="#cccccc"/>
+    <circle cx="68" cy="32" r="10" fill="white"/>
+    <polygon points="68,22 72,42 60,36" fill="#b8d4f0"/>
+    <polygon points="68,22 56,38 48,30" fill="#c8dff5"/>
+    <polygon points="68,22 48,30 44,20" fill="#d8eaf8"/>
+    ${[[20,15],[30,60],[15,45],[80,20],[85,45],[25,80],[75,15]].map(([x,y])=>`<polygon points="${x},${y} ${x+4},${y-6} ${x+8},${y}" fill="none" stroke="white" stroke-width="1.2"/>`).join('')}
+  </svg>`;
+}
+
+function renderMain() {
+  $('app').innerHTML = `
+  <div class="hdr">
+    <div class="logo-wrap">${logoSVG(26)}<div><div class="logo-text">SUPERNOVA</div><div class="logo-sub">Lounge Bar</div></div></div>
+    <div class="hdr-right">
+      <span class="waiter-badge">👤 ${waiter?.name}</span>
+      <button class="lang-btn" onclick="toggleLang()">${lang==='ru'?'EN':'RU'}</button>
+      <button class="icon-btn" onclick="doLogout()">⏻</button>
+    </div>
+  </div>
+  <div class="content" id="content"></div>
+  <div class="nav">
+    <button class="nav-btn ${tab==='tables'?'active':''}" onclick="setTab('tables')"><span class="nav-icon">🛋️</span>${T('tables')}</button>
+    <button class="nav-btn ${tab==='bron'?'active':''}" onclick="setTab('bron')"><span class="nav-icon">📋</span>${T('bron')}</button>
+    <button class="nav-btn ${tab==='analytics'?'active':''}" onclick="setTab('analytics')"><span class="nav-icon">📊</span>${T('analytics')}</button>
+  </div>`;
+  renderContent();
+}
+
+function renderContent() {
+  const c = $('content'); if(!c) return;
+  if(tab==='tables') renderTables(c);
+  else if(tab==='bron') renderBron(c);
+  else if(tab==='analytics') renderAnalyticsTab(c);
+}
+
+// ── TABLES ──
+function renderTables(c) {
+  if(addingTo!==null){ renderAddOrder(c); return; }
+  if(расчётTable!==null){ renderRaschet(c); return; }
+  if(billTable!==null){ renderBill(c); return; }
+  if(tableDetailId!==null){ renderTableDetail(c); return; }
+
+  c.innerHTML = `
+  <div class="toggle">
+    <button class="toggle-btn ${viewMode==='schema'?'active':''}" onclick="setViewMode('schema')">${T('schema')}</button>
+    <button class="toggle-btn ${viewMode==='list'?'active':''}" onclick="setViewMode('list')">${T('list')}</button>
+  </div>
+  ${viewMode==='schema' ? renderFloorPlan() : renderTableList()}
+  ${selTable ? renderTablePopup() : ''}`;
+}
+
+function renderFloorPlan() {
+  const W=320,H=430;
+  const tcs=[
+    {id:7,x:22,y:52,w:62,h:40,shape:'rect'},
+    {id:6,x:30,y:122,w:38,h:38,shape:'round'},
+    {id:5,x:22,y:188,w:62,h:40,shape:'rect'},
+    {id:4,x:22,y:258,w:62,h:40,shape:'rect'},
+    {id:1,x:200,y:72,w:88,h:48,shape:'rect'},
+    {id:2,x:200,y:158,w:88,h:48,shape:'rect'},
+    {id:3,x:200,y:244,w:88,h:48,shape:'rounded'},
+  ];
+  const shapes = tcs.map(tc=>{
+    const t=tables.find(t=>t.id===tc.id)||{status:'free',orders:[],discount:0};
+    const col=statusColor(t.status);
+    const isSel=selTable===tc.id;
+    const sw=isSel?3:1.5;
+    const tot=t.status==='occupied'?tableTotal(t,true):0;
+    const shape = tc.shape==='round'
+      ? `<circle cx="${tc.x+tc.w/2}" cy="${tc.y+tc.h/2}" r="${tc.w/2}" fill="#242424" stroke="${col}" stroke-width="${sw}"/>`
+      : `<rect x="${tc.x}" y="${tc.y}" width="${tc.w}" height="${tc.h}" rx="${tc.shape==='rounded'?10:6}" fill="#242424" stroke="${col}" stroke-width="${sw}"/>`;
+    const label = `<text x="${tc.x+tc.w/2}" y="${tc.y+tc.h/2-(t.status==='free'?2:7)}" text-anchor="middle" font-size="13" font-weight="600" fill="${col}">${tc.id}</text>`;
+    const sub = t.status==='occupied' ? `<text x="${tc.x+tc.w/2}" y="${tc.y+tc.h/2+9}" text-anchor="middle" font-size="8" fill="${col}">${tot} ₽</text>`
+      : t.status==='reserved' ? `<text x="${tc.x+tc.w/2}" y="${tc.y+tc.h/2+9}" text-anchor="middle" font-size="7" fill="${col}">бронь</text>` : '';
+    return `<g onclick="selTableClick(${tc.id})" style="cursor:pointer">${shape}${label}${sub}</g>`;
+  }).join('');
+
+  return `<svg id="floor-svg" viewBox="0 0 ${W} ${H}">
+    <rect x="8" y="8" width="${W-16}" height="${H-16}" rx="12" fill="#111" stroke="#2E2E2E" stroke-width="1.5"/>
+    <rect x="200" y="8" width="80" height="10" fill="#242424"/>
+    <text x="240" y="7" text-anchor="middle" font-size="8" fill="#888">ВХОД</text>
+    <rect x="88" y="18" width="80" height="22" rx="4" fill="#1e1e1e" stroke="#2E2E2E" stroke-width="1"/>
+    <text x="128" y="33" text-anchor="middle" font-size="9" fill="#888" letter-spacing="2">ДИДЖЕЙ</text>
+    <line x1="155" y1="48" x2="155" y2="${H-50}" stroke="#2E2E2E" stroke-width="1" stroke-dasharray="5,4"/>
+    <rect x="70" y="${H-34}" width="180" height="22" rx="5" fill="#242424" stroke="#2E2E2E" stroke-width="1"/>
+    <text x="160" y="${H-20}" text-anchor="middle" font-size="9" fill="#888">БАР</text>
+    ${shapes}
+  </svg>`;
+}
+
+function renderTableList() {
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    ${tables.map(t=>`
+    <div onclick="selTableClick(${t.id})" style="background:var(--surface);border:2px solid ${selTable===t.id?statusColor(t.status):'var(--border)'};border-radius:12px;padding:12px;cursor:pointer">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:14px;font-weight:500">${T('table')} ${t.id}</span>
+        <span style="width:8px;height:8px;border-radius:50%;background:${statusColor(t.status)};display:inline-block"></span>
+      </div>
+      <div style="font-size:11px;color:${statusColor(t.status)};margin-bottom:4px">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div>
+      ${t.status==='occupied'?`<div style="font-size:13px;color:var(--gold)">${tableTotal(t,true)} ₽</div>`:''}
+      ${selTable===t.id?`
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px" onclick="event.stopPropagation()">
+        <button class="btn btn-gold btn-sm" onclick="startAddOrder(${t.id})">${T('addOrder')}</button>
+        ${t.orders?.length>0?`<button class="btn btn-outline-gold btn-sm" onclick="startRaschet(${t.id})">💰 ${T('checkout')}</button>`:''}
+      </div>`:''}
+    </div>`).join('')}
+  </div>`;
+}
+
+function renderTablePopup() {
+  const t=tables.find(t=>t.id===selTable); if(!t) return '';
+  return `
+  <div class="card" style="margin-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-weight:500;font-size:15px">${T('table')} №${selTable}</span>
+      ${statusBadge(t.status)}
+    </div>
+    ${t.status==='occupied'?`<div style="font-size:13px;color:var(--gold);margin-bottom:8px">${T('total')}: ${tableTotal(t,true)} ₽</div>`:''}
+    <button class="btn btn-outline" onclick="openTableDetail(${selTable})">ℹ️ ${T('tableDetail')}</button>
+    <button class="btn btn-gold" onclick="startAddOrder(${selTable})">+ ${T('addOrder')}</button>
+    <button class="btn btn-pink" onclick="startNewBron(${selTable})">+ ${T('bron')}</button>
+    ${t.orders?.length>0?`<button class="btn btn-outline-gold" onclick="startRaschet(${selTable})">💰 ${T('checkout')}</button>`:''}
+  </div>`;
+}
+
+// ── ADD ORDER ──
+function renderAddOrder(c) {
+  const t=tables.find(t=>t.id===addingTo)||{orders:[],discount:0};
+  const items = menuSearch
+    ? Object.entries(MENU).flatMap(([cat,arr])=>arr.map(i=>({...i,cat}))).filter(i=>(lang==='ru'?i.ru:i.en).toLowerCase().includes(menuSearch.toLowerCase()))
+    : (MENU[menuCat]||[]).map(i=>({...i,cat:menuCat}));
+
+  c.innerHTML = `
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="setAddingTo(null)">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:15px">${lang==='ru'?'Меню — Стол':'Menu — Table'} ${addingTo}</span>
+  </div>
+  <div style="position:relative;margin-bottom:12px">
+    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%)">🔍</span>
+    <input class="inp" style="padding-left:36px" placeholder="${T('searchMenu')}" value="${menuSearch}" oninput="setMenuSearch(this.value)"/>
+  </div>
+  ${!menuSearch?`<div class="cat-scroll">${MENU_CATS.map(c=>`<button class="cat-btn ${menuCat===c.k?'active':''}" onclick="setMenuCat('${c.k}')">${c[lang]}</button>`).join('')}</div>`:''}
+  ${items.map(item=>`
+  <div class="card" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:10px 14px">
+    <div>
+      <div style="font-size:14px;margin-bottom:2px">${lang==='ru'?item.ru:item.en}</div>
+      <div style="font-size:13px;color:var(--gold)">${item.price} ₽</div>
+    </div>
+    <button onclick="doAddOrder('${item.id}','${item.ru}','${item.en}',${item.price},'${item.cat}')" style="background:var(--gold);border:none;border-radius:8px;width:34px;height:34px;font-size:20px;cursor:pointer;color:#000;flex-shrink:0">+</button>
+  </div>`).join('')}
+  ${t.orders?.length>0?`
+  <div class="card" style="margin-top:8px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">${T('orders')}</div>
+    ${t.orders.map(o=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px">${lang==='ru'?o.item_name_ru:o.item_name_en} × ${o.qty}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:13px;color:var(--gold)">${o.price*o.qty} ₽</span>
+        <button onclick="doRemoveOrder('${o.id}',${addingTo})" style="background:none;border:1px solid var(--border);border-radius:6px;width:24px;height:24px;font-size:14px;color:var(--red);cursor:pointer">−</button>
+      </div>
+    </div>`).join('')}
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-weight:500">
+      <span>${T('total')}</span><span style="color:var(--gold)">${tableTotal(t)} ₽</span>
+    </div>
+  </div>`:''}`;
+}
+
+// ── РАСЧЁТ ──
+function renderRaschet(c) {
+  const t=tables.find(t=>t.id===расчётTable); if(!t) return;
+  const raw=tableTotal(t,false), disc=tableTotal(t,true);
+  c.innerHTML = `
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="setRaschet(null)">← ${T('back')}</button>
+    <span style="color:var(--gold)">💰 ${lang==='ru'?'Расчёт — Стол':'Checkout — Table'} №${расчётTable}</span>
+  </div>
+  <div class="card">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">${T('orders')}</div>
+    ${t.orders.map(o=>`
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--border)">
+      <span>${lang==='ru'?o.item_name_ru:o.item_name_en} × ${o.qty}</span>
+      <span style="color:var(--gold)">${o.price*o.qty} ₽</span>
+    </div>`).join('')}
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-weight:500;font-size:15px">
+      <span>${T('total')}</span><span style="color:var(--gold)">${raw} ₽</span>
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-size:14px;font-weight:500;margin-bottom:6px">${T('applyDiscount')}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${T('discNote')}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:${t.discount>0?12:0}px">
+      ${[0,...[10,15,20,30,50]].map(pct=>pct===0?'':`<button class="disc-btn ${t.discount===pct?'active':''}" onclick="doSetDiscount(${расчётTable},${pct})">${pct}%</button>`).join('')}
+      ${t.discount>0?`<button onclick="doSetDiscount(${расчётTable},0)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--red);font-size:13px;cursor:pointer">✕ ${lang==='ru'?'Убрать':'Remove'}</button>`:''}
+    </div>
+    ${t.discount>0?`
+    <div style="background:#1A1500;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between">
+      <span style="font-size:13px;color:var(--muted)">${lang==='ru'?'К оплате со скидкой':'Total with discount'}</span>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:700;color:var(--gold)">${disc} ₽</div>
+        <div style="font-size:12px;color:var(--green)">-${raw-disc} ₽ (-${t.discount}%)</div>
+      </div>
+    </div>`:''}
+  </div>
+  <button class="btn btn-gold" onclick="goBill(${расчётTable})">🖨️ ${T('printBill')}</button>
+  <button class="btn btn-outline" onclick="setRaschet(null)">${T('cancel')}</button>`;
+}
+
+// ── BILL ──
+function renderBill(c) {
+  const t=tables.find(t=>t.id===billTable); if(!t) return;
+  const raw=tableTotal(t,false), disc=tableTotal(t,true);
+  const given=parseFloat(cashGiven)||0, change=given-disc;
+  const srv=t.waiter_id;
+  c.innerHTML = `
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="backToBill()">← ${T('back')}</button>
+    <span style="color:var(--gold)">🖨️ Чек — ${T('table')} №${billTable}</span>
+  </div>
+  <div class="receipt">
+    <div class="receipt-title">SUPERNOVA</div>
+    <div class="receipt-sub">LOUNGE BAR</div>
+    <div class="receipt-divider"></div>
+    <div style="text-align:center;font-size:12px">${T('table')} №${billTable} · ${new Date().toLocaleTimeString()}</div>
+    <div class="receipt-divider"></div>
+    ${t.orders.map(o=>`<div class="receipt-row"><span>${lang==='ru'?o.item_name_ru:o.item_name_en} x${o.qty}</span><span>${o.price*o.qty} ₽</span></div>`).join('')}
+    <div class="receipt-divider"></div>
+    ${t.discount>0?`
+    <div class="receipt-row" style="color:#777"><span>${lang==='ru'?'Без скидки':'Subtotal'}</span><span>${raw} ₽</span></div>
+    <div class="receipt-row" style="color:#c0395a"><span>${T('discount')} ${t.discount}%</span><span>-${raw-disc} ₽</span></div>`:''}
+    <div class="receipt-total"><span>ИТОГО</span><span>${disc} ₽</span></div>
+    <div style="font-size:10px;color:#999;text-align:center;margin-top:10px">Спасибо за визит!</div>
+  </div>
+  <div style="font-size:13px;color:var(--muted);margin-bottom:10px;text-align:center">${T('payMethod')||lang==='ru'?'Способ оплаты':'Payment method'}</div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <button class="pay-btn ${payMethod==='cash'?'active':''}" onclick="setPayMethod('cash')">💵 ${T('cash')}</button>
+    <button class="pay-btn ${payMethod==='card'?'active':''}" onclick="setPayMethod('card')">💳 ${T('card')}</button>
+  </div>
+  ${payMethod==='cash'?`
+  <div class="card" style="margin-bottom:14px">
+    <div style="font-size:13px;color:var(--muted);margin-bottom:8px">${T('cashReceived')}</div>
+    <input type="number" class="inp" style="font-size:22px;font-weight:500;text-align:center;margin-bottom:10px" value="${cashGiven}" placeholder="0" oninput="setCashGiven(this.value)"/>
+    ${given>=disc?`<div class="change-box"><span style="font-size:14px;color:var(--muted)">${T('change')}</span><span style="font-size:20px;font-weight:500;color:var(--green)">${change.toFixed(0)} ₽</span></div>`:''}
+    ${cashGiven&&given<disc?`<div style="text-align:center;color:var(--red);font-size:13px">${T('notEnough')} (${(disc-given).toFixed(0)} ₽)</div>`:''}
+  </div>`:''}
+  <button class="btn btn-gold" ${!payMethod||(payMethod==='cash'&&given<disc)?'disabled style="opacity:0.4"':''} onclick="doConfirmPay()">
+    ${T('paid')}
+  </button>
+  <button class="btn btn-outline" onclick="backToBill()">${T('cancel')}</button>`;
+}
+
+// ── TABLE DETAIL ──
+function renderTableDetail(c) {
+  const t=tables.find(t=>t.id===tableDetailId); if(!t) return;
+  c.innerHTML = `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="closeTableDetail()">← ${T('back')}</button>
+    <span style="color:var(--gold)">${T('table')} №${tableDetailId}</span>
+    ${statusBadge(t.status)}
+  </div>
+  <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:14px">
+    <button onclick="setTableDetailTab('info')" style="flex:1;padding:12px;background:none;border:none;color:${tableDetailTab==='info'?'var(--pink)':'var(--muted)'};border-bottom:${tableDetailTab==='info'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer">${T('table')} №${tableDetailId}</button>
+    <button onclick="setTableDetailTab('bron')" style="flex:1;padding:12px;background:none;border:none;color:${tableDetailTab==='bron'?'var(--pink)':'var(--muted)'};border-bottom:${tableDetailTab==='bron'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer">${T('bookings')}</button>
+  </div>
+  ${tableDetailTab==='info'?`
+    <div style="background:var(--surface2);border-radius:12px;height:160px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:13px;color:var(--muted)">📷 ${lang==='ru'?'Фото стола':'Table photo'}</div>
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <div class="metric"><div class="metric-label">Статус</div><div class="metric-val" style="font-size:13px;color:${statusColor(t.status)}">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div></div>
+      <div class="metric"><div class="metric-label">Броней</div><div class="metric-val" style="color:var(--pink)">${t.brons?.length||0}</div></div>
+      ${t.status==='occupied'?`<div class="metric"><div class="metric-label">Счёт</div><div class="metric-val" style="font-size:14px;color:var(--gold)">${tableTotal(t)} ₽</div></div>`:''}
+    </div>
+    <button class="btn btn-pink" onclick="startNewBron(${tableDetailId})">+ ${T('newBron')}</button>
+    ${t.status!=='occupied'?`<button class="btn btn-green" onclick="doOpenTable(${tableDetailId})">${T('openTable')}</button>`:''}
+    ${t.status==='occupied'&&t.orders?.length>0?`<button class="btn btn-outline-gold" onclick="startRaschet(${tableDetailId});closeTableDetail()">💰 ${T('checkout')}</button>`:''}
+  `:`
+    ${!t.brons?.length?`<div style="text-align:center;color:var(--muted);padding:40px">${T('noBookings')}</div>`
+    :t.brons.map(b=>`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-weight:500">${b.guest_name}</span><span style="color:var(--pink);font-size:13px">${b.arrival_time}</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted)">${b.guest_phone||''} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
+      ${b.note?`<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">${b.note}</div>`:''}
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-green btn-sm" onclick="doOpenTable(${tableDetailId})">${T('open')}</button>
+        <button class="btn btn-outline-red btn-sm" onclick="doCancelBron('${b.id}',${tableDetailId})">✕ ${T('cancelBron')}</button>
+      </div>
+    </div>`).join('')}
+    <button class="btn btn-pink" onclick="startNewBron(${tableDetailId})">+ ${T('newBron')}</button>
+  `}`;
+}
+
+// ── BRON ──
+function renderBron(c) {
+  if(bronTab==='new'){ renderNewBron(c); return; }
+  const brons = tables.flatMap(t=>(t.brons||[]).map(b=>({...b,tableId:t.id})))
+    .filter(b=>!searchBron||b.guest_name?.toLowerCase().includes(searchBron.toLowerCase())||b.guest_phone?.includes(searchBron));
+  const allBrons = tables.flatMap(t=>(t.brons||[]));
+  const now = new Date(); const nowMin=now.getHours()*60+now.getMinutes();
+  const lateCount = allBrons.filter(b=>{const[h,m]=(b.arrival_time||'0:0').split(':');return(parseInt(h)*60+parseInt(m))<nowMin;}).length;
+
+  c.innerHTML = `
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <div class="search-wrap"><span class="search-icon">🔍</span><input class="inp" placeholder="${lang==='ru'?'Имя или телефон':'Name or phone'}" value="${searchBron}" oninput="setSearchBron(this.value)"/></div>
+    <button class="btn btn-pink" style="width:auto;padding:0 14px;white-space:nowrap;margin-bottom:0" onclick="setBronTab('new')">+ ${T('bron')}</button>
+  </div>
+  ${!brons.length?`<div style="text-align:center;color:var(--muted);padding:40px">${T('noBookings')}</div>`
+  :brons.map(b=>`
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="font-weight:500">${b.guest_name}</span><span style="color:var(--pink);font-size:13px">${b.arrival_time}</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted)">${T('table')} №${b.tableId} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
+    <div style="font-size:13px;color:var(--muted)">${b.guest_phone||''}</div>
+    ${b.note?`<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">${b.note}</div>`:''}
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-green btn-sm" onclick="doOpenTable(${b.tableId})">${T('open')}</button>
+      <button class="btn btn-outline-red btn-sm" onclick="doCancelBron('${b.id}',${b.tableId})">✕ ${T('cancelBron')}</button>
+    </div>
+  </div>`).join('')}
+  <div class="bron-counters">
+    <div class="bron-counter"><div class="bron-counter-label" style="color:var(--gold)">${T('late')}</div><div class="bron-counter-val" style="color:var(--gold)">${lateCount}</div></div>
+    <div class="bron-counter"><div class="bron-counter-label" style="color:var(--green)">${T('openCount')}</div><div class="bron-counter-val" style="color:var(--green)">${tables.filter(t=>t.status==='occupied').length}</div></div>
+    <div class="bron-counter"><div class="bron-counter-label" style="color:var(--pink)">${T('newCount')}</div><div class="bron-counter-val" style="color:var(--pink)">${tables.filter(t=>t.status==='reserved').length}</div></div>
+  </div>`;
+}
+
+function renderNewBron(c) {
+  c.innerHTML = `
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="setBronTab('list')">← ${T('back')}</button>
+    <span style="color:var(--gold)">${T('newBron')}</span>
+  </div>
+  <div style="margin-bottom:14px">
+    <label class="lbl">${T('table')}</label>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${tables.map(t=>`<button onclick="setBronTableId(${t.id})" style="padding:8px 14px;border-radius:8px;border:2px solid ${bronTableId===t.id?'var(--pink)':'var(--border)'};background:${bronTableId===t.id?'#2A0010':'var(--surface)'};color:${bronTableId===t.id?'var(--pink)':'var(--muted)'};font-size:14px;cursor:pointer">№${t.id}</button>`).join('')}
+    </div>
+  </div>
+  <label class="lbl">${T('guestName')}</label>
+  <input class="inp" style="margin-bottom:14px" value="${bronForm.name}" oninput="bronForm.name=this.value" placeholder="${lang==='ru'?'Иван Петров':'John Smith'}"/>
+  <label class="lbl">${T('phone')}</label>
+  <input class="inp" style="margin-bottom:14px" value="${bronForm.phone}" oninput="bronForm.phone=this.value" placeholder="+7 900 000-00-00"/>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <div style="flex:1"><label class="lbl">${T('guests')}</label><input type="number" class="inp" value="${bronForm.guests}" oninput="bronForm.guests=this.value" min="1"/></div>
+    <div style="flex:1"><label class="lbl">${T('arrival')}</label><input type="time" class="inp" value="${bronForm.time}" oninput="bronForm.time=this.value"/></div>
+  </div>
+  <label class="lbl">${T('note')}</label>
+  <input class="inp" style="margin-bottom:14px" value="${bronForm.note}" oninput="bronForm.note=this.value" placeholder="${lang==='ru'?'День рождения, особые пожелания...':'Special requests...'}"/>
+  <button class="btn btn-pink" ${!bronForm.name||!bronTableId?'disabled style="opacity:0.4"':''} onclick="doSaveBron()">${T('save')} →</button>`;
+}
+
+// ── ANALYTICS ──
+function renderAnalyticsTab(c) {
+  if(!waiter?.is_admin){ c.innerHTML=`<div style="text-align:center;padding:60px;color:var(--muted)">${lang==='ru'?'Только для администратора':'Admin only'}</div>`; return; }
+  const today = new Date().toISOString().split('T')[0];
+  if(!analyticsFrom) analyticsFrom = today;
+  if(!analyticsTo) analyticsTo = today;
+
+  const live = `
+  <div class="card" style="margin-bottom:14px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('liveStatus')}</div>
+    <div style="display:flex;gap:10px">
+      <div class="metric"><div class="metric-label" style="color:var(--gold)">${T('busy')}</div><div class="metric-val" style="color:var(--gold)">${tables.filter(t=>t.status==='occupied').length}</div></div>
+      <div class="metric"><div class="metric-label" style="color:var(--green)">${T('freeCount')}</div><div class="metric-val" style="color:var(--green)">${tables.filter(t=>t.status==='free').length}</div></div>
+      <div class="metric"><div class="metric-label" style="color:var(--pink)">${T('reserved2')}</div><div class="metric-val" style="color:var(--pink)">${tables.filter(t=>t.status==='reserved').length}</div></div>
+    </div>
+  </div>`;
+
+  c.innerHTML = live + `
+  <div class="card">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('period')}</div>
+    <div class="toggle" style="margin-bottom:10px">
+      ${['today','week','month','year'].map(p=>`<button class="toggle-btn ${analyticsTab===p?'active':''}" onclick="setAnalyticsPreset('${p}')">${T(p)}</button>`).join('')}
+    </div>
+    <div class="date-range">
+      <div style="flex:1"><label class="lbl">${T('from')}</label><input type="date" class="inp" value="${analyticsFrom}" onchange="analyticsFrom=this.value"/></div>
+      <div style="flex:1"><label class="lbl">${T('to')}</label><input type="date" class="inp" value="${analyticsTo}" onchange="analyticsTo=this.value"/></div>
+    </div>
+    <button class="btn btn-gold" onclick="doLoadAnalytics()">${lang==='ru'?'Показать':'Show'}</button>
+  </div>
+  <div id="analytics-results"><div class="loader">${lang==='ru'?'Выберите период и нажмите Показать':'Select period and click Show'}</div></div>`;
+}
+
+function renderAnalytics() {
+  const el = $('analytics-results'); if(!el) return;
+  if(!analyticsData){ el.innerHTML=`<div class="loader">${lang==='ru'?'Нет данных':'No data'}</div>`; return; }
+
+  const total = analyticsData.reduce((s,p)=>s+p.total_final,0);
+  const cash  = analyticsData.filter(p=>p.payment_method==='cash').reduce((s,p)=>s+p.total_final,0);
+  const card  = analyticsData.filter(p=>p.payment_method==='card').reduce((s,p)=>s+p.total_final,0);
+  const count = analyticsData.length;
+
+  // Per waiter
+  const byWaiter = {};
+  analyticsData.forEach(p=>{ const n=p.waiters?.name||'?'; byWaiter[n]=(byWaiter[n]||0)+p.total_final; });
+
+  el.innerHTML = `
+  <div style="display:flex;gap:10px;margin-bottom:10px">
+    <div class="metric"><div class="metric-label">${T('revenue')}</div><div class="metric-val" style="color:var(--gold)">${total.toLocaleString()} ₽</div></div>
+    <div class="metric"><div class="metric-label">${T('orders')}</div><div class="metric-val">${count}</div></div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <div class="metric"><div class="metric-label">💵 ${T('cash')}</div><div class="metric-val" style="font-size:16px">${cash.toLocaleString()} ₽</div></div>
+    <div class="metric"><div class="metric-label">💳 ${T('card')}</div><div class="metric-val" style="font-size:16px">${card.toLocaleString()} ₽</div></div>
+  </div>
+  <div class="card">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('salesByWaiter')}</div>
+    ${Object.entries(byWaiter).map(([name,sales])=>`
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div><div style="font-size:14px">👤 ${name}</div><div style="font-size:12px;color:var(--muted)">${sales.toLocaleString()} ₽</div></div>
+      <div style="text-align:right"><div style="font-size:14px;color:var(--green)">${Math.round(sales*0.025).toLocaleString()} ₽</div><div style="font-size:11px;color:var(--muted)">2,5%</div></div>
+    </div>`).join('')}
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <button class="btn btn-outline-gold btn-sm" onclick="exportCSV()" style="flex:1">↓ CSV</button>
+  </div>
+  <div class="card">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${lang==='ru'?'Последние платежи':'Recent payments'}</div>
+    ${analyticsData.slice(0,10).map(p=>`
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <div>
+        <div>${T('table')} №${p.table_id} · ${p.waiters?.name||'?'}</div>
+        <div style="color:var(--muted)">${new Date(p.paid_at).toLocaleString()}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="color:var(--gold)">${p.total_final} ₽</div>
+        <div style="color:var(--muted)">${p.payment_method==='cash'?'💵':'💳'}${p.discount>0?' -'+p.discount+'%':''}</div>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── Action handlers ──
+function setTab(t){ tab=t; selTable=null; addingTo=null; расчётTable=null; billTable=null; tableDetailId=null; if(t==='bron') bronTab='list'; renderMain(); }
+function setViewMode(m){ viewMode=m; selTable=null; renderContent(); }
+function selTableClick(id){ selTable=selTable===id?null:id; renderContent(); }
+function startAddOrder(id){ addingTo=id; menuSearch=''; renderContent(); }
+function setAddingTo(v){ addingTo=v; renderContent(); }
+function setMenuSearch(v){ menuSearch=v; renderContent(); }
+function setMenuCat(v){ menuCat=v; renderContent(); }
+function startRaschet(id){ расчётTable=id; selTable=null; renderContent(); }
+function setRaschet(v){ расчётTable=v; renderContent(); }
+function goBill(id){ billTable=id; расчётTable=null; payMethod=null; cashGiven=''; renderContent(); }
+function backToBill(){ расчётTable=billTable; billTable=null; renderContent(); }
+function setPayMethod(m){ payMethod=m; cashGiven=''; renderContent(); }
+function setCashGiven(v){ cashGiven=v; renderContent(); }
+function openTableDetail(id){ tableDetailId=id; tableDetailTab='info'; selTable=null; renderContent(); }
+function closeTableDetail(){ tableDetailId=null; renderContent(); }
+function setTableDetailTab(t){ tableDetailTab=t; renderContent(); }
+function setBronTab(t){ bronTab=t; renderContent(); }
+function setBronTableId(id){ bronTableId=id; renderContent(); }
+function setSearchBron(v){ searchBron=v; renderContent(); }
+function startNewBron(id){ bronTableId=id; bronForm={name:'',phone:'',guests:'2',time:'19:00',note:''}; tab='bron'; bronTab='new'; renderMain(); }
+function doLogout(){ waiter=null; screen='login'; if(subTables) sb.removeChannel(subTables); render(); }
+
+function setAnalyticsPreset(p){
+  analyticsTab=p;
+  const today=new Date();
+  const fmt=d=>d.toISOString().split('T')[0];
+  if(p==='today'){ analyticsFrom=analyticsTo=fmt(today); }
+  else if(p==='week'){ const d=new Date(today); d.setDate(d.getDate()-7); analyticsFrom=fmt(d); analyticsTo=fmt(today); }
+  else if(p==='month'){ const d=new Date(today); d.setMonth(d.getMonth()-1); analyticsFrom=fmt(d); analyticsTo=fmt(today); }
+  else if(p==='year'){ const d=new Date(today); d.setFullYear(d.getFullYear()-1); analyticsFrom=fmt(d); analyticsTo=fmt(today); }
+  renderContent();
+}
+
+async function doAddOrder(id,ru,en,price,cat){
+  const item={id,ru,en,price,cat};
+  const t=tables.find(t=>t.id===addingTo);
+  const ex=t?.orders?.find(o=>o.item_id===id);
+  if(ex){ await sb.from('orders').update({qty:ex.qty+1}).eq('id',ex.id); await sb.from('tables').update({status:'occupied',waiter_id:waiter.id}).eq('id',addingTo); }
+  else { await dbAddOrder(addingTo,item,cat); }
+  await loadTables(); renderContent();
+}
+
+async function doRemoveOrder(orderId,tableId){
+  await dbRemoveOrder(orderId,tableId); renderContent();
+}
+
+async function doSetDiscount(tableId,pct){
+  await dbSetDiscount(tableId,pct===tables.find(t=>t.id===tableId)?.discount?0:pct); renderContent();
+}
+
+async function doConfirmPay(){
+  if(!payMethod) return;
+  const t=tables.find(t=>t.id===billTable);
+  const raw=tableTotal(t,false), disc=tableTotal(t,true);
+  const given=parseFloat(cashGiven)||0, chg=given-disc;
+  if(payMethod==='cash'&&given<disc) return;
+  await dbConfirmPay(billTable,payMethod,raw,disc,t.discount,given,chg);
+  toast(lang==='ru'?'✅ Стол закрыт':'✅ Table closed');
+  billTable=null; payMethod=null; cashGiven=''; selTable=null; tab='tables';
+  renderMain();
+}
+
+async function doSaveBron(){
+  if(!bronForm.name||!bronTableId) return;
+  await dbSaveBron(bronTableId,bronForm);
+  bronForm={name:'',phone:'',guests:'2',time:'19:00',note:''}; bronTableId=null; bronTab='list';
+  toast(lang==='ru'?'✅ Бронь сохранена':'✅ Booking saved');
+  tab='bron'; renderMain();
+}
+
+async function doOpenTable(id){
+  await dbOpenTable(id);
+  toast(lang==='ru'?'✅ Стол открыт':'✅ Table opened');
+  tableDetailId=null; renderContent();
+}
+
+async function doCancelBron(bronId,tableId){
+  await dbCancelBron(bronId,tableId);
+  toast(lang==='ru'?'Бронь отменена':'Booking cancelled');
+  renderContent();
+}
+
+async function doLoadAnalytics(){
+  const el=$('analytics-results');
+  if(el) el.innerHTML=`<div class="loader">${lang==='ru'?'Загрузка...':'Loading...'}</div>`;
+  await loadAnalytics(analyticsFrom,analyticsTo);
+}
+
+// ── Boot ──
+render();
+</script>
+</body>
+</html>
