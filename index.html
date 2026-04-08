@@ -5,16 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="theme-color" content="#0E0E0E"/>
-<title>Supernova Lounge Bar</title>
+<meta name="theme-color" content="#0A0A0A"/>
+<title>Supernova Lounge Bar | Premium Management System</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%230a0a0a'/><text y='68' x='50' text-anchor='middle' font-size='60' font-family='Arial' font-weight='bold' fill='%23C9A84C'>S</text></svg>"/>
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%230a0a0a'/><text y='68' x='50' text-anchor='middle' font-size='60' font-family='Arial' font-weight='bold' fill='%23C9A84C'>S</text></svg>"/>
 <meta name="apple-mobile-web-app-title" content="Supernova"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
+  /* ===== RESET & BASE PREMIUM ===== */
   * {
     box-sizing: border-box;
     margin: 0;
@@ -23,32 +24,50 @@
   }
   
   body {
-    background: #0E0E0E;
-    color: #F5F0E8;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    max-width: 430px;
+    background: radial-gradient(circle at 20% 30%, #0F0F0F, #050505);
+    color: #F5EFE6;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Text', system-ui, sans-serif;
+    max-width: 500px;
     margin: 0 auto;
     min-height: 100vh;
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
+    position: relative;
+  }
+  
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 70% 80%, rgba(201,168,76,0.08), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
   }
   
   :root {
-    --gold: #C9A84C;
-    --dark: #0E0E0E;
-    --surface: #1A1A1A;
-    --surface2: #242424;
-    --border: #2E2E2E;
-    --text: #F5F0E8;
-    --muted: #888;
+    --gold: #D4AF37;
+    --gold-light: #F5E6A3;
+    --gold-dark: #B8960C;
+    --dark: #0A0A0A;
+    --surface: rgba(26, 26, 30, 0.7);
+    --surface2: rgba(36, 36, 40, 0.8);
+    --border: rgba(255,255,255,0.1);
+    --text: #F5EFE6;
+    --text-secondary: #A0A0B0;
     --green: #2ECC71;
+    --green-dark: #27AE60;
     --red: #E74C3C;
-    --pink: #C0395A;
-    --shadow: 0 4px 12px rgba(0,0,0,0.3);
-    --transition: all 0.2s ease;
+    --pink: #E84393;
+    --purple: #9B59B6;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --shadow-gold: 0 0 20px rgba(212,175,55,0.3);
+    --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
-  input, button {
+  input, button, select, textarea {
     font-family: inherit;
     outline: none;
   }
@@ -59,68 +78,81 @@
   }
   
   button:active {
-    transform: scale(0.97);
+    transform: scale(0.96);
   }
   
-  /* Header */
+  /* ===== HEADER PREMIUM ===== */
   .hdr {
-    background: rgba(26, 26, 26, 0.95);
-    backdrop-filter: blur(10px);
+    background: rgba(10, 10, 12, 0.85);
+    backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border);
-    padding: 12px 14px;
+    padding: 14px 18px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     position: sticky;
     top: 0;
     z-index: 100;
-    padding-top: max(12px, env(safe-area-inset-top));
+    padding-top: max(14px, env(safe-area-inset-top));
   }
   
   .logo-wrap {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
+  }
+  
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-gold);
   }
   
   .logo-text {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 800;
     color: var(--gold);
-    letter-spacing: 1px;
+    letter-spacing: 2px;
   }
   
   .logo-sub {
     font-size: 9px;
-    color: var(--muted);
+    color: var(--text-secondary);
+    letter-spacing: 2px;
   }
   
   .hdr-right {
     display: flex;
-    gap: 6px;
+    gap: 10px;
     align-items: center;
   }
   
   .waiter-badge {
     font-size: 11px;
-    color: var(--muted);
-    background: var(--surface2);
-    padding: 4px 8px;
-    border-radius: 20px;
+    color: var(--text-secondary);
+    background: rgba(255,255,255,0.08);
+    padding: 6px 12px;
+    border-radius: 40px;
+    font-weight: 500;
   }
   
   .lang-btn, .icon-btn {
-    background: none;
+    background: rgba(255,255,255,0.05);
     border: 1px solid var(--border);
-    color: var(--muted);
-    border-radius: 8px;
-    padding: 5px 10px;
+    color: var(--text-secondary);
+    border-radius: 40px;
+    padding: 6px 14px;
     font-size: 12px;
     transition: var(--transition);
   }
   
   .lang-btn:active, .icon-btn:active {
-    background: var(--surface2);
+    background: rgba(255,255,255,0.12);
     transform: scale(0.95);
   }
   
@@ -128,31 +160,32 @@
     color: var(--red);
   }
   
-  /* Nav */
+  /* ===== NAVIGATION PREMIUM ===== */
   .nav {
     display: flex;
-    background: rgba(26, 26, 26, 0.95);
-    backdrop-filter: blur(10px);
+    background: rgba(10, 10, 12, 0.9);
+    backdrop-filter: blur(20px);
     border-top: 1px solid var(--border);
     position: fixed;
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
-    max-width: 430px;
+    max-width: 500px;
     z-index: 100;
     padding-bottom: env(safe-area-inset-bottom);
   }
   
   .nav-btn {
     flex: 1;
-    padding: 10px 4px;
+    padding: 12px 6px;
     background: none;
     border: none;
-    color: var(--muted);
+    color: var(--text-secondary);
     font-size: 11px;
     border-top: 2px solid transparent;
     transition: var(--transition);
+    font-weight: 500;
   }
   
   .nav-btn.active {
@@ -161,94 +194,101 @@
   }
   
   .nav-btn .nav-icon {
-    font-size: 20px;
+    font-size: 22px;
     display: block;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
   }
   
-  /* Content */
+  /* ===== CONTENT ===== */
   .content {
-    padding: 14px;
-    padding-bottom: 80px;
+    padding: 20px 16px;
+    padding-bottom: 85px;
+    position: relative;
+    z-index: 1;
   }
   
-  /* Cards */
+  /* ===== CARDS PREMIUM ===== */
   .card {
     background: var(--surface);
+    backdrop-filter: blur(20px);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 12px;
+    border-radius: 24px;
+    padding: 20px;
+    margin-bottom: 16px;
     transition: var(--transition);
     box-shadow: var(--shadow);
   }
   
-  /* Buttons */
+  .card:active {
+    transform: scale(0.99);
+  }
+  
+  /* ===== BUTTONS PREMIUM ===== */
   .btn {
     border: none;
-    border-radius: 12px;
-    padding: 12px 16px;
+    border-radius: 40px;
+    padding: 14px 20px;
     font-size: 14px;
     font-weight: 600;
     width: 100%;
     display: block;
     text-align: center;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     transition: var(--transition);
   }
   
   .btn:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
   }
   
   .btn-gold {
-    background: var(--gold);
-    color: #000;
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+    color: #0A0A0A;
+    box-shadow: 0 4px 15px rgba(212,175,55,0.3);
   }
   
   .btn-pink {
-    background: var(--pink);
+    background: linear-gradient(135deg, #C0395A, var(--pink));
     color: #fff;
   }
   
   .btn-green {
-    background: var(--green);
+    background: linear-gradient(135deg, var(--green-dark), var(--green));
     color: #fff;
   }
   
   .btn-outline {
-    background: none;
+    background: rgba(255,255,255,0.05);
     border: 1px solid var(--border);
     color: var(--text);
   }
   
   .btn-outline-red {
-    background: none;
+    background: rgba(231,76,60,0.15);
     border: 1px solid var(--red);
     color: var(--red);
   }
   
   .btn-outline-gold {
-    background: none;
+    background: rgba(212,175,55,0.1);
     border: 1px solid var(--gold);
     color: var(--gold);
-    background: var(--surface2);
   }
   
   .btn-sm {
-    padding: 8px 12px;
+    padding: 10px 16px;
     font-size: 12px;
-    border-radius: 10px;
+    border-radius: 30px;
     width: auto;
     flex: 1;
   }
   
-  /* Inputs */
+  /* ===== INPUTS PREMIUM ===== */
   .inp {
-    background: var(--surface2);
+    background: rgba(255,255,255,0.05);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 14px;
+    border-radius: 16px;
+    padding: 14px 16px;
     font-size: 15px;
     color: var(--text);
     width: 100%;
@@ -257,70 +297,73 @@
   
   .inp:focus {
     border-color: var(--gold);
-    outline: none;
+    background: rgba(255,255,255,0.08);
+    box-shadow: 0 0 0 3px rgba(212,175,55,0.2);
   }
   
   .lbl {
     font-size: 12px;
-    color: var(--muted);
-    margin-bottom: 6px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
     display: block;
     font-weight: 500;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
   }
   
-  /* Toggle */
+  /* ===== TOGGLE ===== */
   .toggle {
     display: flex;
-    gap: 8px;
-    margin-bottom: 14px;
+    gap: 12px;
+    margin-bottom: 20px;
   }
   
   .toggle-btn {
     flex: 1;
-    padding: 10px;
-    border-radius: 12px;
+    padding: 12px;
+    border-radius: 40px;
     border: none;
     font-size: 13px;
     cursor: pointer;
     transition: var(--transition);
-    font-weight: 500;
+    font-weight: 600;
   }
   
   .toggle-btn.active {
     background: var(--gold);
-    color: #000;
+    color: #0A0A0A;
+    box-shadow: var(--shadow-gold);
   }
   
   .toggle-btn:not(.active) {
-    background: var(--surface2);
-    color: var(--muted);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
   }
   
-  /* Status badge */
+  /* ===== BADGES ===== */
   .badge {
     font-size: 11px;
-    padding: 4px 10px;
-    border-radius: 20px;
+    padding: 5px 12px;
+    border-radius: 40px;
     font-weight: 600;
   }
   
   .badge-occupied {
-    background: #2A2000;
+    background: rgba(212,175,55,0.2);
     color: var(--gold);
   }
   
   .badge-reserved {
-    background: #2A0010;
+    background: rgba(232,67,147,0.2);
     color: var(--pink);
   }
   
   .badge-free {
-    background: #0A1A0A;
+    background: rgba(46,204,113,0.2);
     color: var(--green);
   }
   
-  /* Login */
+  /* ===== LOGIN PREMIUM ===== */
   .login-wrap {
     display: flex;
     flex-direction: column;
@@ -328,13 +371,13 @@
     justify-content: center;
     height: 100vh;
     padding: 20px;
-    overflow: hidden;
+    background: radial-gradient(circle at 30% 20%, #1A1A2E, #0A0A0A);
   }
   
   .pin-dots {
     display: flex;
-    gap: 14px;
-    margin-bottom: 36px;
+    gap: 16px;
+    margin-bottom: 40px;
   }
   
   .pin-dot {
@@ -347,6 +390,7 @@
   
   .pin-dot.filled {
     background: var(--gold);
+    box-shadow: 0 0 8px var(--gold);
   }
   
   .pin-dot.error {
@@ -356,18 +400,18 @@
   .pin-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    width: 260px;
+    gap: 16px;
+    width: 280px;
   }
   
   .pin-btn {
     background: rgba(255,255,255,0.08);
-    border: none;
-    border-radius: 50%;
-    width: 72px;
-    height: 72px;
-    font-size: 24px;
-    font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: 60px;
+    width: 80px;
+    height: 80px;
+    font-size: 28px;
+    font-weight: 600;
     color: var(--text);
     margin: 0 auto;
     display: flex;
@@ -382,33 +426,32 @@
   }
   
   .pin-btn.del {
-    background: none;
-    font-size: 22px;
-    color: var(--muted);
+    background: rgba(231,76,60,0.15);
+    font-size: 24px;
+    color: var(--red);
   }
   
-  /* Floor plan */
+  /* ===== FLOOR PLAN ===== */
+  .floor-container {
+    background: linear-gradient(135deg, #111115, #0A0A0E);
+    border-radius: 28px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  
   #floor-svg {
     width: 100%;
-    max-width: 360px;
+    max-width: 380px;
     display: block;
     margin: 0 auto;
   }
   
-  .floor-container {
-    background: linear-gradient(160deg, #181818, #111);
-    border-radius: 20px;
-    padding: 12px;
-    border: 1px solid #2E2E2E;
-    box-shadow: var(--shadow);
-    position: relative;
-  }
-  
-  /* Metric */
+  /* ===== METRICS ===== */
   .metric {
-    background: var(--surface2);
-    border-radius: 14px;
-    padding: 14px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 20px;
+    padding: 16px;
     flex: 1;
     text-align: center;
     transition: var(--transition);
@@ -416,18 +459,18 @@
   
   .metric-label {
     font-size: 11px;
-    color: var(--muted);
-    margin-bottom: 6px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
   }
   
   .metric-val {
-    font-size: 24px;
-    font-weight: 700;
+    font-size: 26px;
+    font-weight: 800;
   }
   
-  /* Search */
+  /* ===== SEARCH ===== */
   .search-wrap {
     position: relative;
     flex: 1;
@@ -435,89 +478,277 @@
   
   .search-wrap .search-icon {
     position: absolute;
-    left: 14px;
+    left: 16px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 14px;
-    color: var(--muted);
+    font-size: 16px;
+    color: var(--text-secondary);
   }
   
   .search-wrap .inp {
-    padding-left: 42px;
+    padding-left: 48px;
   }
   
-  /* Toast */
+  /* ===== TOAST ===== */
   .toast {
     position: fixed;
-    bottom: 90px;
+    bottom: 100px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(51, 51, 51, 0.95);
-    backdrop-filter: blur(10px);
-    color: #fff;
-    padding: 12px 24px;
-    border-radius: 30px;
+    background: rgba(0,0,0,0.9);
+    backdrop-filter: blur(20px);
+    color: var(--gold);
+    padding: 14px 28px;
+    border-radius: 60px;
     font-size: 13px;
+    font-weight: 500;
     z-index: 999;
     opacity: 0;
     transition: opacity 0.3s;
     pointer-events: none;
     white-space: nowrap;
+    border: 1px solid var(--gold);
+    box-shadow: var(--shadow-gold);
   }
   
   .toast.show {
     opacity: 1;
   }
   
-  /* Loader */
-  .loader {
+  /* ===== SCROLLABLE CATEGORIES ===== */
+  .cat-scroll {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    color: var(--muted);
-    font-size: 14px;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+    scrollbar-width: none;
   }
   
-  /* Discount buttons */
-  .disc-btn {
+  .cat-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .cat-btn {
+    flex-shrink: 0;
     padding: 10px 18px;
-    border-radius: 12px;
-    border: 2px solid var(--border);
-    background: var(--surface2);
-    color: var(--muted);
-    font-size: 15px;
+    border-radius: 40px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  
+  .cat-btn.active {
+    background: var(--gold);
+    color: #0A0A0A;
+    border-color: var(--gold);
+  }
+  
+  .cat-btn:active {
+    transform: scale(0.95);
+  }
+  
+  /* ===== QUANTITY CONTROLS ===== */
+  .qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .qty-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    border-radius: 40px;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--gold);
+  }
+  
+  .qty-btn:active {
+    transform: scale(0.92);
+    background: rgba(212,175,55,0.2);
+  }
+  
+  .qty-value {
+    font-size: 16px;
+    font-weight: 600;
+    min-width: 36px;
+    text-align: center;
+  }
+  
+  /* ===== DATE RANGE RESPONSIVE ===== */
+  .date-range {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .date-item {
+    flex: 1;
+    min-width: 130px;
+  }
+  
+  .date-item .inp {
+    font-size: 13px;
+    padding: 12px 12px;
+    text-align: center;
+  }
+  
+  /* ===== EQUAL ROW ===== */
+  .equal-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .equal-item {
+    flex: 1;
+    min-width: 130px;
+  }
+  
+  /* ===== TABLE BUTTONS ===== */
+  .table-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .table-btn {
+    padding: 12px 20px;
+    border-radius: 40px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
   }
   
-  .disc-btn.active {
-    border-color: var(--gold);
-    background: #1A1500;
+  .table-btn.active {
+    border-color: var(--pink);
+    background: rgba(232,67,147,0.2);
+    color: var(--pink);
+  }
+  
+  /* ===== STATS TABLE ===== */
+  .stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  
+  .stats-table th, .stats-table td {
+    padding: 10px 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .stats-table th {
     color: var(--gold);
+    font-weight: 600;
+    letter-spacing: 0.5px;
   }
   
-  .disc-btn:active {
-    transform: scale(0.95);
+  /* ===== CONFIRM DIALOG ===== */
+  .confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
-  /* Receipt */
+  .confirm-dialog {
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border-radius: 32px;
+    padding: 28px;
+    width: 300px;
+    text-align: center;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  
+  .confirm-dialog p {
+    margin-bottom: 24px;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  
+  .confirm-buttons {
+    display: flex;
+    gap: 14px;
+  }
+  
+  .confirm-buttons button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 40px;
+    border: none;
+    font-weight: 600;
+  }
+  
+  .confirm-yes {
+    background: var(--red);
+    color: white;
+  }
+  
+  .confirm-no {
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+  }
+  
+  /* ===== RECEIPT ===== */
   .receipt {
     background: #fff;
     color: #000;
-    border-radius: 16px;
-    padding: 20px;
+    border-radius: 24px;
+    padding: 24px;
     font-family: monospace;
-    max-width: 320px;
-    margin: 0 auto 18px;
+    max-width: 340px;
+    margin: 0 auto 20px;
     box-shadow: var(--shadow);
+  }
+  
+  .receipt-header {
+    text-align: center;
+    margin-bottom: 12px;
   }
   
   .receipt-title {
     font-size: 18px;
-    font-weight: 700;
-    text-align: center;
+    font-weight: 800;
+    letter-spacing: 2px;
+  }
+  
+  .receipt-address {
+    font-size: 9px;
+    color: #555;
+    margin-top: 4px;
+  }
+  
+  .receipt-phone {
+    font-size: 10px;
+    color: #777;
+    margin-top: 2px;
   }
   
   .receipt-sub {
@@ -542,91 +773,36 @@
   .receipt-total {
     display: flex;
     justify-content: space-between;
-    font-weight: 700;
+    font-weight: 800;
     font-size: 16px;
-    margin-top: 4px;
-  }
-  
-  /* Pay method */
-  .pay-btn {
-    flex: 1;
-    padding: 14px;
-    border-radius: 14px;
-    border: 2px solid var(--border);
-    background: var(--surface);
-    color: var(--muted);
-    font-size: 14px;
-    cursor: pointer;
-    transition: var(--transition);
-    font-weight: 600;
-  }
-  
-  .pay-btn.active {
-    border-color: var(--gold);
-    background: #1A1500;
-    color: var(--gold);
-  }
-  
-  .pay-btn:active {
-    transform: scale(0.97);
-  }
-  
-  /* Change display */
-  .change-box {
-    display: flex;
-    justify-content: space-between;
-    background: #0A1A0A;
-    border-radius: 12px;
-    padding: 12px 16px;
     margin-top: 8px;
   }
   
-  /* Scrollable cats */
-  .cat-scroll {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    margin-bottom: 12px;
-    scrollbar-width: none;
-  }
-  
-  .cat-scroll::-webkit-scrollbar {
-    display: none;
-  }
-  
-  .cat-btn {
-    flex-shrink: 0;
-    padding: 8px 14px;
-    border-radius: 30px;
-    border: none;
+  /* ===== CRM TABLE ===== */
+  .crm-table {
+    width: 100%;
+    border-collapse: collapse;
     font-size: 12px;
-    cursor: pointer;
-    transition: var(--transition);
-    font-weight: 500;
   }
   
-  .cat-btn.active {
-    background: var(--gold);
-    color: #000;
+  .crm-table th, .crm-table td {
+    padding: 10px 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
   }
   
-  .cat-btn:not(.active) {
-    background: var(--surface2);
-    color: var(--muted);
+  .crm-table th {
+    color: var(--gold);
+    font-weight: 600;
   }
   
-  .cat-btn:active {
-    transform: scale(0.95);
-  }
-  
-  /* Bron counters */
+  /* ===== BRON COUNTERS ===== */
   .bron-counters {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     border-top: 1px solid var(--border);
-    padding-top: 12px;
-    margin-top: 12px;
+    padding-top: 16px;
+    margin-top: 16px;
   }
   
   .bron-counter {
@@ -636,200 +812,101 @@
   
   .bron-counter-label {
     font-size: 11px;
-    color: var(--muted);
+    color: var(--text-secondary);
   }
   
   .bron-counter-val {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
   }
   
-  /* Analytics */
-  .date-range {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-  
-  .date-item {
-    flex: 1;
-    min-width: 0;
-  }
-  
-  .date-item .inp {
-    font-size: 13px;
-    padding: 10px 12px;
-  }
-  
-  /* Table buttons grid */
-  .table-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-  
-  .table-btn {
-    padding: 10px 16px;
-    border-radius: 12px;
-    border: 2px solid var(--border);
-    background: var(--surface);
-    color: var(--muted);
+  .disc-btn {
+    padding: 10px 18px;
+    border-radius: 40px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
   }
   
-  .table-btn.active {
-    border-color: var(--pink);
-    background: #2A0010;
-    color: var(--pink);
-  }
-  
-  .table-btn:active {
-    transform: scale(0.95);
-  }
-  
-  /* Equal row */
-  .equal-row {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-  
-  .equal-item {
-    flex: 1;
-  }
-  
-  /* Analytics table */
-  .stats-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-  }
-  
-  .stats-table th, .stats-table td {
-    padding: 8px;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-  }
-  
-  .stats-table th {
+  .disc-btn.active {
+    border-color: var(--gold);
+    background: rgba(212,175,55,0.2);
     color: var(--gold);
-    font-weight: 600;
   }
   
-  /* Quantity controls */
-  .qty-controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  
-  .qty-btn {
-    background: var(--surface2);
+  .pay-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 40px;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    width: 32px;
-    height: 32px;
-    font-size: 18px;
-    font-weight: 600;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    font-size: 14px;
     cursor: pointer;
     transition: var(--transition);
+    font-weight: 600;
+  }
+  
+  .pay-btn.active {
+    border-color: var(--gold);
+    background: rgba(212,175,55,0.2);
     color: var(--gold);
   }
   
-  .qty-btn:active {
-    transform: scale(0.95);
+  .change-box {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(46,204,113,0.1);
+    border-radius: 16px;
+    padding: 14px 18px;
+    margin-top: 12px;
   }
   
-  .qty-value {
-    font-size: 16px;
-    font-weight: 600;
-    min-width: 30px;
-    text-align: center;
-  }
-  
-  /* RestoFlow branding */
   .restoflow {
     position: fixed;
-    bottom: 12px;
+    bottom: 16px;
     left: 0;
     right: 0;
     text-align: center;
-    font-size: 10px;
-    color: #444;
+    font-size: 9px;
+    color: #333;
     letter-spacing: 1px;
     pointer-events: none;
+    z-index: 200;
   }
   
   .restoflow span {
-    color: #C9A84C;
-    font-weight: 500;
-  }
-  
-  /* Animations */
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  .card, .floor-container {
-    animation: fadeIn 0.3s ease;
-  }
-  
-  /* Confirm dialog */
-  .confirm-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(4px);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .confirm-dialog {
-    background: var(--surface);
-    border-radius: 20px;
-    padding: 24px;
-    width: 280px;
-    text-align: center;
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-  }
-  
-  .confirm-dialog p {
-    margin-bottom: 20px;
-    font-size: 16px;
-  }
-  
-  .confirm-buttons {
-    display: flex;
-    gap: 12px;
-  }
-  
-  .confirm-buttons button {
-    flex: 1;
-    padding: 10px;
-    border-radius: 10px;
-    border: none;
+    color: var(--gold);
     font-weight: 600;
   }
   
-  .confirm-yes {
-    background: var(--red);
-    color: white;
+  .loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: var(--text-secondary);
+    font-size: 14px;
   }
   
-  .confirm-no {
-    background: var(--surface2);
-    color: var(--text);
+  /* ===== ANIMATIONS ===== */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .card, .floor-container, .metric {
+    animation: fadeInUp 0.4s ease;
   }
 </style>
 </head>
@@ -839,13 +916,14 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ===== CONFIGURATION =====
 const { createClient } = supabase;
 const sb = createClient(
   'https://ljkwjvhffrmhbagkdwrz.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqa3dqdmhmZnJtaGJhZ2tkd3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NjE5MzMsImV4cCI6MjA5MTEzNzkzM30.BN8jM6D0fDvTftJptmjqeEnqJ5z1UuN7oQykaxKeFj0'
 );
 
-// ── State ──
+// ===== STATE =====
 let lang = 'ru';
 let screen = 'login';
 let waiter = null;
@@ -854,10 +932,15 @@ let tab = 'tables';
 let viewMode = 'schema';
 let selTable = null;
 let subTables = null;
+let clients = [];
+
+// Menu search
 let menuSearch = '';
+let menuSearchTemp = '';
 let menuSearchTimeout = null;
 let menuCat = 'shisha';
 let addingTo = null;
+
 let расчётTable = null;
 let billTable = null;
 let payMethod = null;
@@ -866,6 +949,7 @@ let bronTab = 'list';
 let bronTableId = null;
 let bronForm = {name:'', phone:'', guests:'2', date:'', time:'19:00', note:''};
 let searchBron = '';
+let searchBronTemp = '';
 let searchBronTimeout = null;
 let tableDetailId = null;
 let tableDetailTab = 'info';
@@ -874,30 +958,15 @@ let analyticsFrom = '';
 let analyticsTo = '';
 let analyticsData = null;
 
-// Load saved preferences from localStorage
-function loadPreferences() {
-  const savedLang = localStorage.getItem('supernova_lang');
-  const savedViewMode = localStorage.getItem('supernova_viewMode');
-  if (savedLang && (savedLang === 'ru' || savedLang === 'en')) lang = savedLang;
-  if (savedViewMode && (savedViewMode === 'schema' || savedViewMode === 'list')) viewMode = savedViewMode;
-}
-
-function savePreferences() {
-  localStorage.setItem('supernova_lang', lang);
-  localStorage.setItem('supernova_viewMode', viewMode);
-}
-
-// Format rubles
+// ===== HELPER FUNCTIONS =====
 const fmtRub = n => Math.round(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
 
-// Format date to Russian DD.MM.YYYY
 function formatDateRussian(dateStr) {
   if (!dateStr) return '';
   const [year, month, day] = dateStr.split('-');
   return `${day}.${month}.${year}`;
 }
 
-// Format phone to Russian format +7 xxx xxx xx xx
 function formatPhoneRussian(input) {
   let v = input.value.replace(/\D/g, '');
   if (v.startsWith('8')) v = '7' + v.slice(1);
@@ -912,15 +981,12 @@ function formatPhoneRussian(input) {
   return f;
 }
 
-// Check if time is within working hours (12:00 to 03:00 next day)
 function isWorkingHours(timeStr) {
   const [hours, minutes] = timeStr.split(':').map(Number);
   const totalMinutes = hours * 60 + minutes;
-  if (totalMinutes >= 720 || totalMinutes <= 180) return true;
-  return false;
+  return totalMinutes >= 720 || totalMinutes <= 180;
 }
 
-// Check double booking
 async function checkDoubleBooking(tableId, date, time) {
   const {data: existingBrons} = await sb.from('brons')
     .select('*')
@@ -931,7 +997,6 @@ async function checkDoubleBooking(tableId, date, time) {
   return existingBrons && existingBrons.length > 0;
 }
 
-// Show confirm dialog
 function showConfirm(message, onConfirm) {
   const overlay = document.createElement('div');
   overlay.className = 'confirm-overlay';
@@ -945,83 +1010,91 @@ function showConfirm(message, onConfirm) {
     </div>
   `;
   document.body.appendChild(overlay);
-  
-  overlay.querySelector('.confirm-yes').onclick = () => {
-    overlay.remove();
-    onConfirm();
-  };
+  overlay.querySelector('.confirm-yes').onclick = () => { overlay.remove(); onConfirm(); };
   overlay.querySelector('.confirm-no').onclick = () => overlay.remove();
 }
 
-// Menu data
+function loadPreferences() {
+  const savedLang = localStorage.getItem('supernova_lang');
+  const savedViewMode = localStorage.getItem('supernova_viewMode');
+  if (savedLang && (savedLang === 'ru' || savedLang === 'en')) lang = savedLang;
+  if (savedViewMode && (savedViewMode === 'schema' || savedViewMode === 'list')) viewMode = savedViewMode;
+}
+
+function savePreferences() {
+  localStorage.setItem('supernova_lang', lang);
+  localStorage.setItem('supernova_viewMode', viewMode);
+}
+
+// ===== MENU DATA =====
 const MENU = {
   shisha:[
-    {id:'s1',ru:'Классич. кальян (12-17ч)',en:'Classic Hookah (12-17h)',price:1000},
-    {id:'s2',ru:'Премиум кальян (12-17ч)',en:'Premium Hookah (12-17h)',price:1150},
-    {id:'s3',ru:'Классич. кальян (с 17ч)',en:'Classic Hookah (17h+)',price:1500},
-    {id:'s4',ru:'Премиум кальян (с 17ч)',en:'Premium Hookah (17h+)',price:1650},
-    {id:'s5',ru:'Замена чаши (классич.)',en:'Bowl change (Classic)',price:1000},
-    {id:'s6',ru:'Замена чаши (премиум)',en:'Bowl change (Premium)',price:1150},
+    {id:'s1',ru:'Классич. кальян (12-17ч)',en:'Classic Hookah (12-17h)',price:1000,category:'shisha'},
+    {id:'s2',ru:'Премиум кальян (12-17ч)',en:'Premium Hookah (12-17h)',price:1150,category:'shisha'},
+    {id:'s3',ru:'Классич. кальян (с 17ч)',en:'Classic Hookah (17h+)',price:1500,category:'shisha'},
+    {id:'s4',ru:'Премиум кальян (с 17ч)',en:'Premium Hookah (17h+)',price:1650,category:'shisha'},
+    {id:'s5',ru:'Замена чаши (классич.)',en:'Bowl change (Classic)',price:1000,category:'shisha'},
+    {id:'s6',ru:'Замена чаши (премиум)',en:'Bowl change (Premium)',price:1150,category:'shisha'},
   ],
   beer:[
-    {id:'b1',ru:'Лагер 0,33 л',en:'Lager 0.33L',price:320},
-    {id:'b2',ru:'Лагер 0,5 л',en:'Lager 0.5L',price:400},
-    {id:'b3',ru:'Корона 0,33 л',en:'Corona 0.33L',price:350},
-    {id:'b4',ru:'Крон Бланш',en:'Kron Blansh',price:280},
-    {id:'b5',ru:'Шпатен',en:'Spaten',price:300},
-    {id:'b6',ru:'Эфес',en:'Efes',price:300},
-    {id:'b7',ru:'Тёмное',en:'Dark Beer',price:350},
+    {id:'b1',ru:'Лагер 0,33 л',en:'Lager 0.33L',price:320,category:'beer'},
+    {id:'b2',ru:'Лагер 0,5 л',en:'Lager 0.5L',price:400,category:'beer'},
+    {id:'b3',ru:'Корона 0,33 л',en:'Corona 0.33L',price:350,category:'beer'},
+    {id:'b4',ru:'Крон Бланш',en:'Kron Blansh',price:280,category:'beer'},
+    {id:'b5',ru:'Шпатен',en:'Spaten',price:300,category:'beer'},
+    {id:'b6',ru:'Эфес',en:'Efes',price:300,category:'beer'},
+    {id:'b7',ru:'Тёмное',en:'Dark Beer',price:350,category:'beer'},
   ],
   lemonade:[
-    {id:'l1',ru:'Клубника-Лимон 0,4л',en:'Strawberry-Lemon 0.4L',price:390},
-    {id:'l2',ru:'Клубника-Фейхоа 0,4л',en:'Strawberry-Feijoa 0.4L',price:450},
-    {id:'l3',ru:'Манго-Маракуйя 0,4л',en:'Mango-Passion 0.4L',price:400},
-    {id:'l4',ru:'Цитрусовый микс 0,4л',en:'Citrus Mix 0.4L',price:390},
-    {id:'l5',ru:'Малина-Личи 0,4л',en:'Raspberry-Lychee 0.4L',price:430},
-    {id:'l6',ru:'Манго-Маракуйя 1л',en:'Mango-Passion 1L',price:820},
-    {id:'l7',ru:'Клубника-Фейхоа 1л',en:'Strawberry-Feijoa 1L',price:850},
-    {id:'l8',ru:'Цитрусовый микс 1л',en:'Citrus Mix 1L',price:770},
-    {id:'l9',ru:'Манго-Личи 1л',en:'Mango-Lychee 1L',price:850},
-    {id:'l10',ru:'Ягодное комбо 1л',en:'Berry Combo 1L',price:770},
+    {id:'l1',ru:'Клубника-Лимон 0,4л',en:'Strawberry-Lemon 0.4L',price:390,category:'lemonade'},
+    {id:'l2',ru:'Клубника-Фейхоа 0,4л',en:'Strawberry-Feijoa 0.4L',price:450,category:'lemonade'},
+    {id:'l3',ru:'Манго-Маракуйя 0,4л',en:'Mango-Passion 0.4L',price:400,category:'lemonade'},
+    {id:'l4',ru:'Цитрусовый микс 0,4л',en:'Citrus Mix 0.4L',price:390,category:'lemonade'},
+    {id:'l5',ru:'Малина-Личи 0,4л',en:'Raspberry-Lychee 0.4L',price:430,category:'lemonade'},
+    {id:'l6',ru:'Манго-Маракуйя 1л',en:'Mango-Passion 1L',price:820,category:'lemonade'},
+    {id:'l7',ru:'Клубника-Фейхоа 1л',en:'Strawberry-Feijoa 1L',price:850,category:'lemonade'},
+    {id:'l8',ru:'Цитрусовый микс 1л',en:'Citrus Mix 1L',price:770,category:'lemonade'},
+    {id:'l9',ru:'Манго-Личи 1л',en:'Mango-Lychee 1L',price:850,category:'lemonade'},
+    {id:'l10',ru:'Ягодное комбо 1л',en:'Berry Combo 1L',price:770,category:'lemonade'},
   ],
   drinks:[
-    {id:'d1',ru:'Кока-Кола 0,33',en:'Coca-Cola 0.33',price:280},
-    {id:'d2',ru:'Кока-Кола (Добрый)',en:'Coca-Cola (Dobry)',price:200},
-    {id:'d3',ru:'Лимон-Лайм',en:'Lemon-Lime',price:200},
-    {id:'d4',ru:'Добрый Апельсин',en:'Dobry Orange',price:200},
-    {id:'d5',ru:'Сок 0,2л',en:'Juice 0.2L',price:220},
-    {id:'d6',ru:'Сок 1л',en:'Juice 1L',price:450},
-    {id:'d7',ru:'Вода Джермук',en:'Water Jermuk',price:260},
-    {id:'d8',ru:'Вода 0,33л',en:'Water 0.33L',price:200},
-    {id:'d9',ru:'Энергетик BURN',en:'Energy BURN',price:220},
-    {id:'d10',ru:'Энергетик Red Bull',en:'Energy Red Bull',price:350},
+    {id:'d1',ru:'Кока-Кола 0,33',en:'Coca-Cola 0.33',price:280,category:'drinks'},
+    {id:'d2',ru:'Кока-Кола (Добрый)',en:'Coca-Cola (Dobry)',price:200,category:'drinks'},
+    {id:'d3',ru:'Лимон-Лайм',en:'Lemon-Lime',price:200,category:'drinks'},
+    {id:'d4',ru:'Добрый Апельсин',en:'Dobry Orange',price:200,category:'drinks'},
+    {id:'d5',ru:'Сок 0,2л',en:'Juice 0.2L',price:220,category:'drinks'},
+    {id:'d6',ru:'Сок 1л',en:'Juice 1L',price:450,category:'drinks'},
+    {id:'d7',ru:'Вода Джермук',en:'Water Jermuk',price:260,category:'drinks'},
+    {id:'d8',ru:'Вода 0,33л',en:'Water 0.33L',price:200,category:'drinks'},
+    {id:'d9',ru:'Энергетик BURN',en:'Energy BURN',price:220,category:'drinks'},
+    {id:'d10',ru:'Энергетик Red Bull',en:'Energy Red Bull',price:350,category:'drinks'},
   ],
   coffee:[
-    {id:'c1',ru:'Эспрессо',en:'Espresso',price:190},
-    {id:'c2',ru:'Американо',en:'Americano',price:220},
-    {id:'c3',ru:'Капучино S',en:'Cappuccino S',price:230},
-    {id:'c4',ru:'Капучино L',en:'Cappuccino L',price:260},
-    {id:'c5',ru:'Латте',en:'Latte',price:300},
-    {id:'c6',ru:'Ассам 0,5л',en:'Assam 0.5L',price:430},
-    {id:'c7',ru:'Ассам 1л',en:'Assam 1L',price:550},
-    {id:'c8',ru:'Эл Грей 0,5л',en:'Earl Grey 0.5L',price:430},
-    {id:'c9',ru:'Эл Грей 1л',en:'Earl Grey 1L',price:550},
-    {id:'c10',ru:'Сенча 0,5л',en:'Sencha 0.5L',price:430},
-    {id:'c11',ru:'Жасмин 0,5л',en:'Jasmine 0.5L',price:430},
-    {id:'c12',ru:'Травяной 0,5л',en:'Herbal 0.5L',price:430},
-    {id:'c13',ru:'Травяной 1л',en:'Herbal 1L',price:600},
-    {id:'c14',ru:'Лимон-Имбирь-Мёд 1л',en:'Lemon-Ginger-Honey 1L',price:750},
-    {id:'c15',ru:'Груша-Специи 1л',en:'Pear-Spices 1L',price:720},
-    {id:'c16',ru:'Облепиха-Апельсин 1л',en:'Buckthorn-Orange 1L',price:790},
-    {id:'c17',ru:'Ягодный чай 1л',en:'Berry Tea 1L',price:790},
-    {id:'c18',ru:'Китайский чай проливом',en:'Chinese Tea',price:800},
-    {id:'c19',ru:'Добавки к чаю',en:'Tea extras',price:80},
+    {id:'c1',ru:'Эспрессо',en:'Espresso',price:190,category:'coffee'},
+    {id:'c2',ru:'Американо',en:'Americano',price:220,category:'coffee'},
+    {id:'c3',ru:'Капучино S',en:'Cappuccino S',price:230,category:'coffee'},
+    {id:'c4',ru:'Капучино L',en:'Cappuccino L',price:260,category:'coffee'},
+    {id:'c5',ru:'Латте',en:'Latte',price:300,category:'coffee'},
+    {id:'c6',ru:'Ассам 0,5л',en:'Assam 0.5L',price:430,category:'coffee'},
+    {id:'c7',ru:'Ассам 1л',en:'Assam 1L',price:550,category:'coffee'},
+    {id:'c8',ru:'Эл Грей 0,5л',en:'Earl Grey 0.5L',price:430,category:'coffee'},
+    {id:'c9',ru:'Эл Грей 1л',en:'Earl Grey 1L',price:550,category:'coffee'},
+    {id:'c10',ru:'Сенча 0,5л',en:'Sencha 0.5L',price:430,category:'coffee'},
+    {id:'c11',ru:'Жасмин 0,5л',en:'Jasmine 0.5L',price:430,category:'coffee'},
+    {id:'c12',ru:'Травяной 0,5л',en:'Herbal 0.5L',price:430,category:'coffee'},
+    {id:'c13',ru:'Травяной 1л',en:'Herbal 1L',price:600,category:'coffee'},
+    {id:'c14',ru:'Лимон-Имбирь-Мёд 1л',en:'Lemon-Ginger-Honey 1L',price:750,category:'coffee'},
+    {id:'c15',ru:'Груша-Специи 1л',en:'Pear-Spices 1L',price:720,category:'coffee'},
+    {id:'c16',ru:'Облепиха-Апельсин 1л',en:'Buckthorn-Orange 1L',price:790,category:'coffee'},
+    {id:'c17',ru:'Ягодный чай 1л',en:'Berry Tea 1L',price:790,category:'coffee'},
+    {id:'c18',ru:'Китайский чай проливом',en:'Chinese Tea',price:800,category:'coffee'},
+    {id:'c19',ru:'Добавки к чаю',en:'Tea extras',price:80,category:'coffee'},
   ],
   snacks:[
-    {id:'n1',ru:'Сет солёный S',en:'Salty Set S',price:630},
-    {id:'n2',ru:'Сет солёный M',en:'Salty Set M',price:910},
-    {id:'n3',ru:'Сет фруктовый S',en:'Fruit Set S',price:580},
-    {id:'n4',ru:'Сет фруктовый M',en:'Fruit Set M',price:750},
+    {id:'n1',ru:'Сет солёный S',en:'Salty Set S',price:630,category:'snacks'},
+    {id:'n2',ru:'Сет солёный M',en:'Salty Set M',price:910,category:'snacks'},
+    {id:'n3',ru:'Сет фруктовый S',en:'Fruit Set S',price:580,category:'snacks'},
+    {id:'n4',ru:'Сет фруктовый M',en:'Fruit Set M',price:750,category:'snacks'},
   ],
 };
 
@@ -1036,9 +1109,9 @@ const MENU_CATS = [
 
 const NO_DISC = ['shisha'];
 
-// Translations
+// ===== TRANSLATIONS =====
 const T = k => lang === 'ru' ? ({
-  tables:'Столики', bron:'Бронь', analytics:'Аналитика',
+  tables:'Столики', bron:'Бронь', analytics:'Аналитика', crm:'Клиенты',
   free:'Свободен', occupied:'Занят', reserved:'Забронирован',
   back:'Назад', save:'Сохранить', cancel:'Отмена',
   addOrder:'Добавить заказ', checkout:'Рассчитать',
@@ -1057,7 +1130,7 @@ const T = k => lang === 'ru' ? ({
   cashReceived:'Купюра клиента (₽)', liveStatus:'Сейчас в зале',
   busy:'Занято', freeCount:'Свободно', reserved2:'Бронь',
   salesByWaiter:'Продажи по официантам', bonus:'Бонус 2,5%',
-  exportCSV:'Экспорт CSV', exportPDF:'Экспорт PDF',
+  exportCSV:'Экспорт Excel', exportPDF:'Экспорт PDF',
   from:'С', to:'По', applyDiscount:'Применить скидку?',
   discNote:'(не распространяется на кальяны)',
   open:'Открыть', late:'Ожидаем', openCount:'Открыто', newCount:'Новые',
@@ -1065,8 +1138,14 @@ const T = k => lang === 'ru' ? ({
   avgCheck:'Средний чек', checksCount:'Кол-во чеков',
   revenueByWaiter:'Выручка по официантам', totalRevenue:'Общая выручка',
   confirmDelete:'Удалить этот заказ?', confirmCancelBron:'Отменить эту бронь?',
+  cashTotal:'Наличные', cardTotal:'Карта', transferTotal:'Перевод',
+  categoryShisha:'Кальяны', categoryDrinks:'Напитки', categoryFood:'Кухня',
+  avgTicket:'Средний чек', totalOrders:'Всего заказов',
+  clientName:'Имя клиента', clientPhone:'Телефон', clientVisits:'Визитов',
+  clientTotal:'Сумма покупок', lastVisit:'Последний визит',
+  addClient:'Добавить клиента', clientList:'Список клиентов',
 }[k]||k) : ({
-  tables:'Tables', bron:'Bookings', analytics:'Analytics',
+  tables:'Tables', bron:'Bookings', analytics:'Analytics', crm:'Clients',
   free:'Free', occupied:'Busy', reserved:'Reserved',
   back:'Back', save:'Save', cancel:'Cancel',
   addOrder:'Add Order', checkout:'Checkout',
@@ -1085,7 +1164,7 @@ const T = k => lang === 'ru' ? ({
   cashReceived:'Cash received (₽)', liveStatus:'Live status',
   busy:'Busy', freeCount:'Free', reserved2:'Reserved',
   salesByWaiter:'Sales per waiter', bonus:'Bonus 2.5%',
-  exportCSV:'Export CSV', exportPDF:'Export PDF',
+  exportCSV:'Export Excel', exportPDF:'Export PDF',
   from:'From', to:'To', applyDiscount:'Apply discount?',
   discNote:'(not applicable to hookahs)',
   open:'Open', late:'Late', openCount:'Open', newCount:'New',
@@ -1093,11 +1172,17 @@ const T = k => lang === 'ru' ? ({
   avgCheck:'Average check', checksCount:'Number of checks',
   revenueByWaiter:'Revenue by waiter', totalRevenue:'Total revenue',
   confirmDelete:'Delete this order?', confirmCancelBron:'Cancel this booking?',
+  cashTotal:'Cash', cardTotal:'Card', transferTotal:'Transfer',
+  categoryShisha:'Shisha', categoryDrinks:'Drinks', categoryFood:'Food',
+  avgTicket:'Average ticket', totalOrders:'Total orders',
+  clientName:'Client name', clientPhone:'Phone', clientVisits:'Visits',
+  clientTotal:'Total spent', lastVisit:'Last visit',
+  addClient:'Add client', clientList:'Clients list',
 }[k]||k);
 
 const toast = (msg, dur=2500) => {
-  const el = $('toast'); 
-  el.textContent = msg; 
+  const el = $('toast');
+  el.textContent = msg;
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), dur);
 };
@@ -1115,7 +1200,93 @@ const statusBadge = s => `<span class="badge badge-${s}">${T(s==='occupied'?'occ
 
 const $ = id => document.getElementById(id);
 
-// Supabase
+// ===== CRM FUNCTIONS =====
+async function loadClients() {
+  const {data} = await sb.from('clients').select('*').order('created_at', {ascending: false});
+  if(data) clients = data;
+  renderCrm();
+}
+
+async function addClient(name, phone) {
+  const {data: existing} = await sb.from('clients').select('*').eq('phone', phone);
+  if (existing && existing.length > 0) {
+    toast(lang==='ru'?'⚠️ Клиент с таким номером уже существует':'⚠️ Client with this phone already exists');
+    return;
+  }
+  await sb.from('clients').insert({
+    name: name,
+    phone: phone,
+    visits: 0,
+    total_spent: 0,
+    last_visit: new Date().toISOString()
+  });
+  await loadClients();
+  toast(lang==='ru'?'✅ Клиент добавлен':'✅ Client added');
+}
+
+async function updateClientStats(phone, amount) {
+  const {data: client} = await sb.from('clients').select('*').eq('phone', phone);
+  if (client && client.length > 0) {
+    const c = client[0];
+    await sb.from('clients').update({
+      visits: (c.visits || 0) + 1,
+      total_spent: (c.total_spent || 0) + amount,
+      last_visit: new Date().toISOString()
+    }).eq('id', c.id);
+  }
+}
+
+function renderCrm() {
+  const c = $('content');
+  if (!c) return;
+  
+  c.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <button class="btn btn-outline" style="width:auto;padding:10px 18px;margin-bottom:0;border-radius:40px" onclick="setTab('tables')">← ${T('back')}</button>
+      <span style="color:var(--gold);font-size:18px;font-weight:700">📇 ${T('crm')}</span>
+    </div>
+    
+    <div class="card" style="border-radius:28px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:16px;color:var(--gold)">➕ ${T('addClient')}</div>
+      <input class="inp" id="new-client-name" placeholder="${T('clientName')}" style="margin-bottom:12px;border-radius:40px"/>
+      <input class="inp" id="new-client-phone" placeholder="${T('phone')}" style="margin-bottom:16px;border-radius:40px" oninput="formatPhoneRussian(this)"/>
+      <button class="btn btn-gold" onclick="addClientFromForm()" style="border-radius:40px">${T('save')}</button>
+    </div>
+    
+    <div class="card" style="border-radius:28px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:16px;color:var(--gold)">📋 ${T('clientList')}</div>
+      ${clients.length === 0 ? `<div style="text-align:center;padding:30px;color:var(--text-secondary)">${lang==='ru'?'Нет клиентов':'No clients'}</div>` : `
+      <table class="crm-table">
+        <thead><tr><th>${T('clientName')}</th><th>${T('phone')}</th><th>${T('clientVisits')}</th><th>${T('clientTotal')}</th></thead>
+        <tbody>
+          ${clients.map(c => `
+            <tr>
+              <td style="font-weight:600">${c.name}</td>
+              <td>${c.phone}</td>
+              <td>${c.visits || 0}</td>
+              <td style="color:var(--gold)">${fmtRub(c.total_spent || 0)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      `}
+    </div>
+  `;
+}
+
+function addClientFromForm() {
+  const name = document.getElementById('new-client-name')?.value;
+  const phone = document.getElementById('new-client-phone')?.value;
+  if (!name || !phone) {
+    toast(lang==='ru'?'⚠️ Заполните имя и телефон':'⚠️ Fill name and phone');
+    return;
+  }
+  addClient(name, phone);
+  document.getElementById('new-client-name').value = '';
+  document.getElementById('new-client-phone').value = '';
+}
+
+// ===== SUPABASE FUNCTIONS =====
 async function loadTables() {
   const {data} = await sb.from('tables').select('*, orders(*)').order('id');
   if(data) {
@@ -1123,7 +1294,7 @@ async function loadTables() {
     tables = data.map(t => ({
       ...t,
       orders: t.orders||[],
-      brons: (brons||[]).filter(b=>b.table_id===t.id)
+      brons: (brons||[]).filter(b=>b.table_id===t.id && b.status === 'active')
     }));
     render();
   }
@@ -1135,7 +1306,7 @@ function subscribeRealtime() {
     .subscribe();
 }
 
-// Login
+// ===== LOGIN =====
 async function tryLogin(p) {
   const {data:ws} = await sb.from('waiters').select('*').eq('pin',p).eq('is_active',true);
   if(!ws||ws.length===0) return false;
@@ -1143,7 +1314,7 @@ async function tryLogin(p) {
   return true;
 }
 
-// DB Actions
+// ===== DB ACTIONS =====
 async function dbAddOrder(tableId, item, cat) {
   await sb.from('orders').insert({
     table_id:tableId, waiter_id:waiter.id,
@@ -1178,15 +1349,22 @@ async function dbSetDiscount(tableId, pct) {
   await loadTables();
 }
 
-async function dbConfirmPay(tableId, method, raw, final, disc, given, chg) {
+async function dbConfirmPay(tableId, method, raw, final, disc, given, chg, clientPhone) {
   const t = tables.find(t=>t.id===tableId);
   await sb.from('payments').insert({
     table_id:tableId, waiter_id:t.waiter_id||waiter.id,
     total_raw:raw, total_final:final, discount:disc,
     payment_method:method,
     cash_given:method==='cash'?given:null,
-    change_given:method==='cash'?chg:null
+    change_given:method==='cash'?chg:null,
+    client_phone: clientPhone || null
   });
+  
+  // Mettre à jour les stats du client si téléphone fourni
+  if (clientPhone) {
+    await updateClientStats(clientPhone, final);
+  }
+  
   await sb.from('orders').delete().eq('table_id',tableId);
   await sb.from('tables').update({status:'free', waiter_id:null, discount:0}).eq('id',tableId);
   await loadTables();
@@ -1211,143 +1389,127 @@ async function dbOpenTable(tableId) {
 async function dbCancelBron(bronId, tableId) {
   await sb.from('brons').update({status:'cancelled'}).eq('id',bronId);
   const t = tables.find(t=>t.id===tableId);
-  const remaining = (t.brons||[]).filter(b=>b.id!==bronId);
+  const remaining = (t.brons||[]).filter(b=>b.id!==bronId && b.status === 'active');
   if(remaining.length===0){
     await sb.from('tables').update({status:'free'}).eq('id',tableId);
   }
   await loadTables();
 }
 
-async function loadAnalytics(from, to) {
-  const {data:payments} = await sb.from('payments')
-    .select('*, waiters(name)')
-    .gte('paid_at', from+'T00:00:00')
-    .lte('paid_at', to+'T23:59:59')
-    .order('paid_at', {ascending:false});
-  analyticsData = payments||[];
-  renderAnalytics();
-}
-
-function exportToCSV() {
+// ===== EXPORT EXCEL PROFESSIONNEL =====
+async function exportToExcel() {
   if(!analyticsData || analyticsData.length===0) {
     toast(lang==='ru'?'Нет данных для экспорта':'No data to export');
     return;
   }
-  
-  const headers = ['Date', 'Table', 'Waiter', 'Total', 'Discount', 'Method'];
-  const rows = analyticsData.map(p => [
-    new Date(p.paid_at).toLocaleString(),
-    p.table_id,
-    p.waiters?.name || 'Unknown',
-    p.total_final,
-    p.discount + '%',
-    p.payment_method === 'cash' ? 'Cash' : 'Card'
-  ]);
-  
-  const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-  const blob = new Blob(["\uFEFF" + csvContent], {type: 'text/csv;charset=utf-8;'});
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  link.href = url;
-  link.setAttribute('download', `supernova_analytics_${analyticsFrom}_${analyticsTo}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-  toast(lang==='ru'?'✅ CSV экспортирован':'✅ CSV exported');
-}
 
-async function exportToPDF() {
-  if(!analyticsData || analyticsData.length===0) {
-    toast(lang==='ru'?'Нет данных для экспорта':'No data to export');
-    return;
-  }
-  
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p', 'mm', 'a4');
-  
-  const total = analyticsData.reduce((s,p)=>s+p.total_final,0);
-  const avgCheck = total / analyticsData.length;
-  
-  doc.setFontSize(18);
-  doc.text('SUPERNOVA Lounge Bar', 105, 20, { align: 'center' });
-  doc.setFontSize(10);
-  doc.text(`${T('period')}: ${formatDateRussian(analyticsFrom)} - ${formatDateRussian(analyticsTo)}`, 105, 30, { align: 'center' });
-  
-  doc.setFontSize(12);
-  doc.text(`${T('totalRevenue')}: ${fmtRub(total)}`, 20, 45);
-  doc.text(`${T('checksCount')}: ${analyticsData.length}`, 20, 55);
-  doc.text(`${T('avgCheck')}: ${fmtRub(avgCheck)}`, 20, 65);
-  
-  doc.text(`${T('salesByWaiter')}:`, 20, 80);
-  const byWaiter = {};
-  analyticsData.forEach(p => {
-    const name = p.waiters?.name || 'Unknown';
-    byWaiter[name] = (byWaiter[name] || 0) + p.total_final;
-  });
-  let y = 90;
-  for (const [name, sales] of Object.entries(byWaiter)) {
-    doc.text(`  ${name}: ${fmtRub(sales)}`, 20, y);
-    y += 8;
-  }
-  
-  doc.text(`${lang==='ru'?'Последние платежи':'Recent payments'}:`, 20, y + 10);
-  y += 20;
-  analyticsData.slice(0, 15).forEach(p => {
-    if (y > 270) {
-      doc.addPage();
-      y = 20;
+  const allOrders = [];
+  for (const payment of analyticsData) {
+    const {data: orders} = await sb.from('orders')
+      .select('*')
+      .eq('table_id', payment.table_id);
+    
+    if (orders && orders.length > 0) {
+      for (const order of orders) {
+        const orderDate = new Date(payment.paid_at);
+        allOrders.push({
+          heure: orderDate.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+          table: `T${payment.table_id}`,
+          serveur: payment.waiters?.name || 'Unknown',
+          produit: lang === 'ru' ? order.item_name_ru : order.item_name_en,
+          categorie: order.category === 'shisha' ? (lang === 'ru' ? 'Кальян' : 'Shisha') :
+                     (order.category === 'beer' || order.category === 'lemonade' || order.category === 'drinks' || order.category === 'coffee') ? (lang === 'ru' ? 'Напиток' : 'Drink') :
+                     (lang === 'ru' ? 'Закуска' : 'Snack'),
+          quantite: order.qty,
+          prix_unitaire: order.price,
+          total: order.price * order.qty,
+          mode_paiement: payment.payment_method === 'cash' ? (lang === 'ru' ? 'Наличные' : 'Cash') :
+                         payment.payment_method === 'card' ? (lang === 'ru' ? 'Карта' : 'Card') : (lang === 'ru' ? 'Перевод' : 'Transfer'),
+          remise: payment.discount || 0,
+          commentaire: ''
+        });
+      }
     }
-    doc.text(`${T('table')} ${p.table_id} | ${p.total_final} ₽ | ${p.payment_method==='cash'?'💵':'💳'} | ${p.waiters?.name||'?'}`, 20, y);
-    y += 7;
-  });
-  
-  doc.save(`supernova_report_${analyticsFrom}_${analyticsTo}.pdf`);
-  toast(lang==='ru'?'✅ PDF экспортирован':'✅ PDF exported');
-}
+  }
 
-function exportDetailedStats() {
-  if(!analyticsData || analyticsData.length===0) {
-    toast(lang==='ru'?'Нет данных для экспорта':'No data to export');
+  if (allOrders.length === 0) {
+    toast(lang==='ru'?'Нет детальных данных для экспорта':'No detailed data to export');
     return;
   }
-  
-  const total = analyticsData.reduce((s,p)=>s+p.total_final,0);
-  const avgCheck = total / analyticsData.length;
-  
-  const byWaiter = {};
-  analyticsData.forEach(p => {
-    const name = p.waiters?.name || 'Unknown';
-    byWaiter[name] = (byWaiter[name] || 0) + p.total_final;
-  });
-  
-  let report = `=== SUPERNOVA LOUNGE BAR ===\n`;
-  report += `${T('period')}: ${formatDateRussian(analyticsFrom)} - ${formatDateRussian(analyticsTo)}\n`;
-  report += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-  report += `${T('totalRevenue')}: ${fmtRub(total)}\n`;
-  report += `${T('checksCount')}: ${analyticsData.length}\n`;
-  report += `${T('avgCheck')}: ${fmtRub(avgCheck)}\n`;
-  report += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-  report += `${T('salesByWaiter')}:\n`;
-  for (const [name, sales] of Object.entries(byWaiter)) {
-    report += `  👤 ${name}: ${fmtRub(sales)} (${Math.round(sales/total*100)}%)\n`;
+
+  const totalRevenue = allOrders.reduce((s, o) => s + o.total, 0);
+  const totalCash = allOrders.filter(o => o.mode_paiement === (lang === 'ru' ? 'Наличные' : 'Cash')).reduce((s, o) => s + o.total, 0);
+  const totalCard = allOrders.filter(o => o.mode_paiement === (lang === 'ru' ? 'Карта' : 'Card')).reduce((s, o) => s + o.total, 0);
+  const totalTransfer = allOrders.filter(o => o.mode_paiement === (lang === 'ru' ? 'Перевод' : 'Transfer')).reduce((s, o) => s + o.total, 0);
+  const totalOrdersCount = allOrders.length;
+  const avgTicket = totalRevenue / totalOrdersCount || 0;
+
+  const shishaTotal = allOrders.filter(o => o.categorie === (lang === 'ru' ? 'Кальян' : 'Shisha')).reduce((s, o) => s + o.total, 0);
+  const drinksTotal = allOrders.filter(o => o.categorie === (lang === 'ru' ? 'Напиток' : 'Drink')).reduce((s, o) => s + o.total, 0);
+  const foodTotal = allOrders.filter(o => o.categorie === (lang === 'ru' ? 'Закуска' : 'Snack')).reduce((s, o) => s + o.total, 0);
+
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Details
+  const wsData = [
+    [`SUPERNOVA LOUNGE BAR - ${T('period')}: ${formatDateRussian(analyticsFrom)} - ${formatDateRussian(analyticsTo)}`],
+    [],
+    [T('hour'), T('table'), T('waiter'), T('product'), T('category'), T('quantity'), T('unitPrice'), T('total'), T('paymentMethod'), T('discount'), T('comment')]
+  ];
+
+  for (const order of allOrders) {
+    wsData.push([
+      order.heure, order.table, order.serveur, order.produit, order.categorie,
+      order.quantite, order.prix_unitaire, order.total, order.mode_paiement,
+      order.remise, order.commentaire
+    ]);
   }
-  report += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-  report += `${lang==='ru'?'Последние платежи':'Recent payments'}:\n`;
-  analyticsData.slice(0,10).forEach(p => {
-    report += `  ${T('table')} ${p.table_id} | ${p.total_final} ₽ | ${p.payment_method==='cash'?'💵':'💳'} | ${p.waiters?.name||'?'}\n`;
-  });
-  
-  const blob = new Blob([report], {type: 'text/plain'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `supernova_report_${analyticsFrom}_${analyticsTo}.txt`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-  toast(lang==='ru'?'✅ Отчёт экспортирован':'✅ Report exported');
+
+  const ws1 = XLSX.utils.aoa_to_sheet(wsData);
+  ws1['!cols'] = [{wch:8},{wch:8},{wch:14},{wch:28},{wch:12},{wch:8},{wch:12},{wch:12},{wch:14},{wch:10},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, ws1, lang === 'ru' ? 'Детали' : 'Details');
+
+  // Sheet 2: Dashboard
+  const ws2Data = [
+    ['📊 DASHBOARD'],
+    [],
+    [T('totalRevenue'), fmtRub(totalRevenue)],
+    [T('cashTotal'), fmtRub(totalCash)],
+    [T('cardTotal'), fmtRub(totalCard)],
+    [T('transferTotal'), fmtRub(totalTransfer)],
+    [T('totalOrders'), totalOrdersCount],
+    [T('avgTicket'), fmtRub(avgTicket)],
+    [],
+    ['📈 ' + T('categoryAnalysis')],
+    [T('categoryShisha'), fmtRub(shishaTotal), `${Math.round(shishaTotal/totalRevenue*100)}%`],
+    [T('categoryDrinks'), fmtRub(drinksTotal), `${Math.round(drinksTotal/totalRevenue*100)}%`],
+    [T('categoryFood'), fmtRub(foodTotal), `${Math.round(foodTotal/totalRevenue*100)}%`]
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(ws2Data);
+  ws2['!cols'] = [{wch:28},{wch:16},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Dashboard');
+
+  // Sheet 3: By Waiter
+  const byWaiter = {};
+  for (const order of allOrders) {
+    byWaiter[order.serveur] = (byWaiter[order.serveur] || 0) + order.total;
+  }
+  const ws3Data = [
+    ['👥 ' + T('salesByWaiter')],
+    [],
+    [T('waiter'), T('revenue'), T('bonus')]
+  ];
+  for (const [name, sales] of Object.entries(byWaiter)) {
+    ws3Data.push([name, fmtRub(sales), fmtRub(sales * 0.025)]);
+  }
+  const ws3 = XLSX.utils.aoa_to_sheet(ws3Data);
+  XLSX.utils.book_append_sheet(wb, ws3, lang === 'ru' ? 'Serveurs' : 'Waiters');
+
+  XLSX.writeFile(wb, `supernova_report_${analyticsFrom}_${analyticsTo}.xlsx`);
+  toast(lang==='ru'?'✅ Excel exporté avec succès':'✅ Excel exported successfully');
 }
 
-// Render
+// ===== RENDER FUNCTIONS =====
 function render() {
   if(screen==='login'){ renderLogin(); return; }
   renderMain();
@@ -1357,17 +1519,17 @@ function renderLogin() {
   document.body.style.overflow = 'hidden';
   $('app').innerHTML = `
   <div class="login-wrap">
-    <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:32px">
-      ${logoSVG(80)}
-      <div style="font-size:24px;font-weight:700;color:var(--gold);letter-spacing:3px;margin-top:12px">SUPERNOVA</div>
-      <div style="font-size:11px;color:var(--muted);letter-spacing:4px">LOUNGE BAR</div>
+    <div class="logo-icon" style="width:70px;height:70px;margin-bottom:20px">
+      ${logoSVG(60)}
     </div>
-    <div style="font-size:15px;color:var(--text);margin-bottom:20px">${lang==='ru'?'Введите PIN':'Enter PIN'}</div>
+    <div style="font-size:28px;font-weight:800;color:var(--gold);letter-spacing:4px;margin-bottom:8px">SUPERNOVA</div>
+    <div style="font-size:11px;color:var(--text-secondary);letter-spacing:5px;margin-bottom:40px">LOUNGE BAR</div>
+    <div style="font-size:14px;color:var(--text);margin-bottom:24px;font-weight:500">${lang==='ru'?'Введите PIN-код':'Enter PIN code'}</div>
     <div class="pin-dots">
       ${[0,1,2,3].map(i=>`<div class="pin-dot" id="dot${i}"></div>`).join('')}
     </div>
-    <div style="width:260px">
-      <div class="pin-grid" style="margin-bottom:14px">
+    <div style="width:280px">
+      <div class="pin-grid" style="margin-bottom:16px">
         ${['1','2','3','4','5','6','7','8','9'].map(d=>`<button class="pin-btn" onclick="pinPress('${d}')">${d}</button>`).join('')}
       </div>
       <div class="pin-grid">
@@ -1376,8 +1538,8 @@ function renderLogin() {
         <button class="pin-btn del" onclick="pinPress('del')">⌫</button>
       </div>
     </div>
-    <button class="lang-btn" style="margin-top:24px" onclick="toggleLang()">${lang==='ru'?'EN':'RU'}</button>
-    <div class="restoflow">RestoFlow by <span>HOLFRID DIGITAL</span></div>
+    <button class="lang-btn" style="margin-top:32px" onclick="toggleLang()">${lang==='ru'?'EN':'RU'}</button>
+    <div class="restoflow">POWERED BY <span>HOLFRID DIGITAL</span></div>
   </div>`;
   window._pinVal = '';
 }
@@ -1400,21 +1562,22 @@ function updateDots(err=false) {
 
 async function doLogin() {
   const ok = await tryLogin(_pinVal);
-  if(ok){ 
-    screen='main'; 
-    document.body.style.overflow = 'auto'; 
-    await loadTables(); 
-    subscribeRealtime(); 
-  } else { 
-    updateDots(true); 
-    setTimeout(()=>{ _pinVal=''; updateDots(); },700); 
+  if(ok){
+    screen='main';
+    document.body.style.overflow = 'auto';
+    await loadTables();
+    await loadClients();
+    subscribeRealtime();
+  } else {
+    updateDots(true);
+    setTimeout(()=>{ _pinVal=''; updateDots(); },700);
   }
 }
 
-function toggleLang(){ 
-  lang=lang==='ru'?'en':'ru'; 
+function toggleLang(){
+  lang=lang==='ru'?'en':'ru';
   savePreferences();
-  render(); 
+  render();
 }
 
 function logoSVG(size=26) {
@@ -1433,7 +1596,10 @@ function logoSVG(size=26) {
 function renderMain() {
   $('app').innerHTML = `
   <div class="hdr">
-    <div class="logo-wrap">${logoSVG(26)}<div><div class="logo-text">SUPERNOVA</div><div class="logo-sub">Lounge Bar</div></div></div>
+    <div class="logo-wrap">
+      <div class="logo-icon">${logoSVG(28)}</div>
+      <div><div class="logo-text">SUPERNOVA</div><div class="logo-sub">LOUNGE BAR</div></div>
+    </div>
     <div class="hdr-right">
       <span class="waiter-badge">👤 ${waiter?.name}</span>
       <button class="lang-btn" onclick="toggleLang()">${lang==='ru'?'EN':'RU'}</button>
@@ -1445,6 +1611,7 @@ function renderMain() {
     <button class="nav-btn ${tab==='tables'?'active':''}" onclick="setTab('tables')"><span class="nav-icon">🛋️</span>${T('tables')}</button>
     <button class="nav-btn ${tab==='bron'?'active':''}" onclick="setTab('bron')"><span class="nav-icon">📋</span>${T('bron')}</button>
     <button class="nav-btn ${tab==='analytics'?'active':''}" onclick="setTab('analytics')"><span class="nav-icon">📊</span>${T('analytics')}</button>
+    <button class="nav-btn ${tab==='crm'?'active':''}" onclick="setTab('crm')"><span class="nav-icon">👥</span>${T('crm')}</button>
   </div>`;
   renderContent();
 }
@@ -1454,9 +1621,10 @@ function renderContent() {
   if(tab==='tables') renderTables(c);
   else if(tab==='bron') renderBron(c);
   else if(tab==='analytics') renderAnalyticsTab(c);
+  else if(tab==='crm') renderCrm(c);
 }
 
-// Tables
+// ===== TABLES RENDERING =====
 function renderTables(c) {
   if(addingTo!==null){ renderAddOrder(c); return; }
   if(расчётTable!==null){ renderRaschet(c); return; }
@@ -1536,7 +1704,6 @@ function renderFloorPlan() {
     return `<g onclick="selTableClick(${tc.id})" style="cursor:pointer">${sofasSVG}${shadow}${tableShape}${label}${sub}</g>`;
   }).join('');
 
-  // 3D Neon Text "СУПЕРНОВА" vertical (rotated)
   const neonText = `
     <text x="182" y="195" text-anchor="middle" font-size="16" font-weight="900" fill="var(--gold)" font-family="Segoe UI, sans-serif" letter-spacing="3" transform="rotate(-90,182,195)" filter="url(#glow)">
       СУПЕРНОВА
@@ -1554,8 +1721,8 @@ function renderFloorPlan() {
     </defs>
   `;
 
-  return `<div class="floor-container" style="overflow:hidden">
-  <svg id="floor-svg" viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:auto">
+  return `<div class="floor-container">
+  <svg id="floor-svg" viewBox="0 0 ${W} ${H}">
     <rect x="1" y="1" width="${W-2}" height="${H-2}" rx="12" fill="#111" stroke="#2e2e2e" stroke-width="1.5"/>
     <rect x="230" y="1" width="80" height="11" rx="3" fill="#242424"/>
     <text x="270" y="9.5" text-anchor="middle" font-size="7.5" fill="#666" letter-spacing="1">ВХОД</text>
@@ -1568,17 +1735,17 @@ function renderFloorPlan() {
 }
 
 function renderTableList() {
-  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
     ${tables.map(t=>`
-    <div onclick="selTableClick(${t.id})" style="background:var(--surface);border:2px solid ${selTable===t.id?statusColor(t.status):'var(--border)'};border-radius:14px;padding:14px;cursor:pointer;transition:var(--transition)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:15px;font-weight:600">${T('table')} ${t.id}</span>
-        <span style="width:10px;height:10px;border-radius:50%;background:${statusColor(t.status)};display:inline-block"></span>
+    <div onclick="selTableClick(${t.id})" style="background:var(--surface);backdrop-filter:blur(20px);border:1px solid ${selTable===t.id?statusColor(t.status):'var(--border)'};border-radius:20px;padding:16px;cursor:pointer;transition:var(--transition)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:16px;font-weight:700">${T('table')} ${t.id}</span>
+        <span style="width:10px;height:10px;border-radius:50%;background:${statusColor(t.status)};display:inline-block;box-shadow:0 0 6px ${statusColor(t.status)}"></span>
       </div>
-      <div style="font-size:12px;color:${statusColor(t.status)};margin-bottom:4px;font-weight:500">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div>
-      ${t.status==='occupied'?`<div style="font-size:14px;color:var(--gold);font-weight:600">${tableTotal(t,true)} ₽</div>`:''}
+      <div style="font-size:12px;color:${statusColor(t.status)};margin-bottom:6px;font-weight:600">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div>
+      ${t.status==='occupied'?`<div style="font-size:15px;color:var(--gold);font-weight:700">${tableTotal(t,true)} ₽</div>`:''}
       ${selTable===t.id?`
-      <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px" onclick="event.stopPropagation()">
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px" onclick="event.stopPropagation()">
         <button class="btn btn-gold btn-sm" onclick="startAddOrder(${t.id})">${T('addOrder')}</button>
         ${t.orders?.length>0?`<button class="btn btn-outline-gold btn-sm" onclick="startRaschet(${t.id})">💰 ${T('checkout')}</button>`:''}
       </div>`:''}
@@ -1589,12 +1756,12 @@ function renderTableList() {
 function renderTablePopup() {
   const t=tables.find(t=>t.id===selTable); if(!t) return '';
   return `
-  <div class="card" style="margin-top:12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <span style="font-weight:600;font-size:16px">${T('table')} №${selTable}</span>
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <span style="font-weight:700;font-size:18px">${T('table')} №${selTable}</span>
       ${statusBadge(t.status)}
     </div>
-    ${t.status==='occupied'?`<div style="font-size:14px;color:var(--gold);margin-bottom:10px;font-weight:600">${T('total')}: ${tableTotal(t,true)} ₽</div>`:''}
+    ${t.status==='occupied'?`<div style="font-size:15px;color:var(--gold);margin-bottom:12px;font-weight:700">${T('total')}: ${tableTotal(t,true)} ₽</div>`:''}
     <button class="btn btn-outline" onclick="openTableDetail(${selTable})">ℹ️ ${T('tableDetail')}</button>
     <button class="btn btn-gold" onclick="startAddOrder(${selTable})">+ ${T('addOrder')}</button>
     <button class="btn btn-pink" onclick="startNewBron(${selTable})">+ ${T('bron')}</button>
@@ -1602,50 +1769,82 @@ function renderTablePopup() {
   </div>`;
 }
 
-// Add Order with quantity editing
+// ===== ADD ORDER (SANS RAFRAÎCHISSEMENT) =====
 function renderAddOrder(c) {
   const t=tables.find(t=>t.id===addingTo)||{orders:[],discount:0};
-  const items = menuSearch
-    ? Object.entries(MENU).flatMap(([cat,arr])=>arr.map(i=>({...i,cat}))).filter(i=>(lang==='ru'?i.ru:i.en).toLowerCase().includes(menuSearch.toLowerCase()))
-    : (MENU[menuCat]||[]).map(i=>({...i,cat:menuCat}));
+  
+  let items = [];
+  if (menuSearchTemp) {
+    items = Object.entries(MENU).flatMap(([cat,arr])=>arr.map(i=>({...i,cat}))).filter(i=>(lang==='ru'?i.ru:i.en).toLowerCase().includes(menuSearchTemp.toLowerCase()));
+  } else {
+    items = (MENU[menuCat]||[]).map(i=>({...i,cat:menuCat}));
+  }
 
   c.innerHTML = `
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-    <button class="btn btn-outline" style="width:auto;padding:8px 14px;margin-bottom:0" onclick="setAddingTo(null)">← ${T('back')}</button>
-    <span style="color:var(--gold);font-size:16px;font-weight:600">${lang==='ru'?'Меню — Стол':'Menu — Table'} ${addingTo}</span>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <button class="btn btn-outline" style="width:auto;padding:10px 18px;margin-bottom:0;border-radius:40px" onclick="setAddingTo(null)">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:18px;font-weight:700">${lang==='ru'?'Меню — Стол':'Menu — Table'} ${addingTo}</span>
   </div>
-  <div style="position:relative;margin-bottom:14px">
-    <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%)">🔍</span>
-    <input type="search" class="inp" style="padding-left:42px" placeholder="${T('searchMenu')}" value="${menuSearch}" oninput="handleMenuSearch(this.value)" inputmode="search"/>
+  
+  <div style="position:relative;margin-bottom:16px">
+    <span style="position:absolute;left:16px;top:50%;transform:translateY(-50%)">🔍</span>
+    <input type="search" class="inp" style="padding-left:48px" placeholder="${T('searchMenu')}" value="${menuSearchTemp}" oninput="updateMenuSearchTemp(this.value)" id="menu-search-input" inputmode="search"/>
   </div>
-  ${!menuSearch?`<div class="cat-scroll">${MENU_CATS.map(c=>`<button class="cat-btn ${menuCat===c.k?'active':''}" onclick="setMenuCat('${c.k}')">${c[lang]}</button>`).join('')}</div>`:''}
-  <div style="max-height:400px;overflow-y:auto">
+  
+  ${!menuSearchTemp ? `
+  <div class="cat-scroll">
+    ${MENU_CATS.map(c=>`<button class="cat-btn ${menuCat===c.k?'active':''}" onclick="setMenuCatAndRefresh('${c.k}')">${c[lang]}</button>`).join('')}
+  </div>` : ''}
+  
+  <div style="max-height:450px;overflow-y:auto">
     ${items.map(item=>`
-    <div class="card" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:12px 14px">
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:14px 16px;border-radius:20px">
       <div>
-        <div style="font-size:14px;font-weight:500;margin-bottom:4px">${lang==='ru'?item.ru:item.en}</div>
-        <div style="font-size:13px;color:var(--gold);font-weight:600">${item.price} ₽</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">${lang==='ru'?item.ru:item.en}</div>
+        <div style="font-size:14px;color:var(--gold);font-weight:700">${item.price} ₽</div>
       </div>
-      <button onclick="doAddOrder('${item.id}','${item.ru}','${item.en}',${item.price},'${item.cat}')" style="background:var(--gold);border:none;border-radius:10px;width:38px;height:38px;font-size:20px;cursor:pointer;color:#000;flex-shrink:0;transition:var(--transition)">+</button>
+      <button onclick="doAddOrder('${item.id}','${item.ru}','${item.en}',${item.price},'${item.cat}')" style="background:var(--gold);border:none;border-radius:40px;width:44px;height:44px;font-size:22px;cursor:pointer;color:#0A0A0A;flex-shrink:0;transition:var(--transition);font-weight:700">+</button>
     </div>`).join('')}
   </div>
-  ${t.orders?.length>0?`
-  <div class="card" style="margin-top:12px">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('orders')}</div>
+  
+  ${t.orders?.length>0 ? `
+  <div class="card" style="margin-top:16px;border-radius:24px">
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;letter-spacing:1.5px">${T('orders')}</div>
     ${t.orders.map(o=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-      <span style="font-size:13px">${lang==='ru'?o.item_name_ru:o.item_name_en}</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:14px;font-weight:500">${lang==='ru'?o.item_name_ru:o.item_name_en}</span>
       <div class="qty-controls">
         <button class="qty-btn" onclick="updateOrderQty('${o.id}', ${o.qty-1}, ${addingTo})">−</button>
         <span class="qty-value">${o.qty}</span>
         <button class="qty-btn" onclick="updateOrderQty('${o.id}', ${o.qty+1}, ${addingTo})">+</button>
-        <span style="font-size:14px;color:var(--gold);font-weight:600;min-width:70px;text-align:right">${o.price*o.qty} ₽</span>
+        <span style="font-size:15px;color:var(--gold);font-weight:700;min-width:80px;text-align:right">${o.price*o.qty} ₽</span>
       </div>
     </div>`).join('')}
-    <div style="display:flex;justify-content:space-between;margin-top:10px;font-weight:700;font-size:16px">
+    <div style="display:flex;justify-content:space-between;margin-top:14px;font-weight:800;font-size:18px">
       <span>${T('total')}</span><span style="color:var(--gold)">${tableTotal(t)} ₽</span>
     </div>
-  </div>`:''}`;
+  </div>` : ''}`;
+  
+  setTimeout(() => {
+    const searchInput = document.getElementById('menu-search-input');
+    if (searchInput) searchInput.focus();
+  }, 50);
+}
+
+function updateMenuSearchTemp(value) {
+  menuSearchTemp = value;
+  if (menuSearchTimeout) clearTimeout(menuSearchTimeout);
+  menuSearchTimeout = setTimeout(() => {
+    menuSearch = menuSearchTemp;
+    renderContent();
+  }, 600);
+}
+
+function setMenuCatAndRefresh(cat) {
+  menuCat = cat;
+  menuSearchTemp = '';
+  menuSearch = '';
+  renderContent();
 }
 
 async function updateOrderQty(orderId, newQty, tableId) {
@@ -1660,66 +1859,66 @@ async function updateOrderQty(orderId, newQty, tableId) {
   }
 }
 
-function handleMenuSearch(value) {
-  if (menuSearchTimeout) clearTimeout(menuSearchTimeout);
-  menuSearchTimeout = setTimeout(() => {
-    menuSearch = value;
-    renderContent();
-  }, 500);
-}
-
-// Checkout
+// ===== CHECKOUT & BILL =====
 function renderRaschet(c) {
   const t=tables.find(t=>t.id===расчётTable); if(!t) return;
   const raw=tableTotal(t,false), disc=tableTotal(t,true);
   c.innerHTML = `
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-    <button class="btn btn-outline" style="width:auto;padding:8px 14px;margin-bottom:0" onclick="setRaschet(null)">← ${T('back')}</button>
-    <span style="color:var(--gold);font-size:16px;font-weight:600">💰 ${lang==='ru'?'Расчёт — Стол':'Checkout — Table'} №${расчётTable}</span>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <button class="btn btn-outline" style="width:auto;padding:10px 18px;margin-bottom:0;border-radius:40px" onclick="setRaschet(null)">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:18px;font-weight:700">💰 ${lang==='ru'?'Расчёт — Стол':'Checkout — Table'} №${расчётTable}</span>
   </div>
-  <div class="card">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('orders')}</div>
+  <div class="card" style="border-radius:24px">
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;letter-spacing:1.5px">${T('orders')}</div>
     ${t.orders.map(o=>`
-    <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">
       <span>${lang==='ru'?o.item_name_ru:o.item_name_en} × ${o.qty}</span>
-      <span style="color:var(--gold);font-weight:500">${o.price*o.qty} ₽</span>
+      <span style="color:var(--gold);font-weight:600">${o.price*o.qty} ₽</span>
     </div>`).join('')}
-    <div style="display:flex;justify-content:space-between;margin-top:10px;font-weight:700;font-size:16px">
+    <div style="display:flex;justify-content:space-between;margin-top:12px;font-weight:800;font-size:18px">
       <span>${T('total')}</span><span style="color:var(--gold)">${raw} ₽</span>
     </div>
   </div>
-  <div class="card">
-    <div style="font-size:14px;font-weight:600;margin-bottom:8px">${T('applyDiscount')}</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${T('discNote')}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:${t.discount>0?14:0}px">
+  <div class="card" style="border-radius:24px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:10px">${T('applyDiscount')}</div>
+    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:14px">${T('discNote')}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:${t.discount>0?16:0}px">
       ${[10,15,20,30,50].map(pct=>`<button class="disc-btn ${t.discount===pct?'active':''}" onclick="doSetDiscount(${расчётTable},${pct})">${pct}%</button>`).join('')}
-      ${t.discount>0?`<button onclick="doSetDiscount(${расчётTable},0)" style="padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:none;color:var(--red);font-size:13px;cursor:pointer;transition:var(--transition)">✕ ${lang==='ru'?'Убрать':'Remove'}</button>`:''}
+      ${t.discount>0?`<button onclick="doSetDiscount(${расчётTable},0)" style="padding:10px 16px;border-radius:40px;border:1px solid var(--border);background:none;color:var(--red);font-size:13px;cursor:pointer">✕ ${lang==='ru'?'Убрать':'Remove'}</button>`:''}
     </div>
     ${t.discount>0?`
-    <div style="background:#1A1500;border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between">
-      <span style="font-size:13px;color:var(--muted)">${lang==='ru'?'К оплате со скидкой':'Total with discount'}</span>
+    <div style="background:rgba(212,175,55,0.1);border-radius:20px;padding:14px 18px;display:flex;justify-content:space-between">
+      <span style="font-size:13px;color:var(--text-secondary)">${lang==='ru'?'К оплате со скидкой':'Total with discount'}</span>
       <div style="text-align:right">
-        <div style="font-size:20px;font-weight:700;color:var(--gold)">${disc} ₽</div>
+        <div style="font-size:22px;font-weight:800;color:var(--gold)">${disc} ₽</div>
         <div style="font-size:12px;color:var(--green)">-${raw-disc} ₽ (-${t.discount}%)</div>
       </div>
     </div>`:''}
   </div>
-  <button class="btn btn-gold" onclick="goBill(${расчётTable})">🖨️ ${T('printBill')}</button>
-  <button class="btn btn-outline" onclick="setRaschet(null)">${T('cancel')}</button>`;
+  <button class="btn btn-gold" onclick="goBill(${расчётTable})" style="border-radius:40px">🖨️ ${T('printBill')}</button>
+  <button class="btn btn-outline" onclick="setRaschet(null)" style="border-radius:40px">${T('cancel')}</button>`;
 }
 
-// Bill
 function renderBill(c) {
   const t=tables.find(t=>t.id===billTable); if(!t) return;
   const raw=tableTotal(t,false), disc=tableTotal(t,true);
   const given=parseFloat(cashGiven)||0, change=given-disc;
+  
+  // Options clients pour le CRM
+  const clientOptions = clients.map(c => `<option value="${c.phone}">${c.name} (${c.phone})</option>`).join('');
+  
   c.innerHTML = `
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-    <button class="btn btn-outline" style="width:auto;padding:8px 14px;margin-bottom:0" onclick="backToBill()">← ${T('back')}</button>
-    <span style="color:var(--gold);font-size:16px;font-weight:600">🖨️ Чек — ${T('table')} №${billTable}</span>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <button class="btn btn-outline" style="width:auto;padding:10px 18px;margin-bottom:0;border-radius:40px" onclick="backToBill()">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:18px;font-weight:700">🖨️ Чек — ${T('table')} №${billTable}</span>
   </div>
+  
   <div class="receipt">
-    <div class="receipt-title">SUPERNOVA</div>
+    <div class="receipt-header">
+      <div class="receipt-title">SUPERNOVA</div>
+      <div class="receipt-address">Проспект Дзержинского, 190а</div>
+      <div class="receipt-phone">+7 988 500-16-00</div>
+    </div>
     <div class="receipt-sub">LOUNGE BAR</div>
     <div class="receipt-divider"></div>
     <div style="text-align:center;font-size:12px">${T('table')} №${billTable} · ${new Date().toLocaleTimeString()}</div>
@@ -1730,64 +1929,74 @@ function renderBill(c) {
     <div class="receipt-row" style="color:#777"><span>${lang==='ru'?'Без скидки':'Subtotal'}</span><span>${raw} ₽</span></div>
     <div class="receipt-row" style="color:#c0395a"><span>${T('discount')} ${t.discount}%</span><span>-${raw-disc} ₽</span></div>`:''}
     <div class="receipt-total"><span>ИТОГО</span><span>${disc} ₽</span></div>
-    <div style="font-size:10px;color:#999;text-align:center;margin-top:10px">Спасибо за визит!</div>
+    <div style="font-size:10px;color:#999;text-align:center;margin-top:12px">Спасибо за визит!</div>
+    <div style="font-size:8px;color:#aaa;text-align:center;margin-top:8px">Проспект Дзержинского, 190а | +7 988 500-16-00</div>
   </div>
-  <div style="font-size:13px;color:var(--muted);margin-bottom:12px;text-align:center;font-weight:500">${lang==='ru'?'Способ оплаты':'Payment method'}</div>
-  <div style="display:flex;gap:12px;margin-bottom:16px">
+  
+  <div class="card" style="border-radius:24px;margin-bottom:16px">
+    <label class="lbl">${lang==='ru'?'Клиент (опционально)':'Client (optional)'}</label>
+    <select id="client-select" class="inp" style="border-radius:40px">
+      <option value="">${lang==='ru'?'— Не выбран —':'— Not selected —'}</option>
+      ${clientOptions}
+    </select>
+  </div>
+  
+  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;text-align:center;font-weight:600">${lang==='ru'?'Способ оплаты':'Payment method'}</div>
+  <div style="display:flex;gap:14px;margin-bottom:20px">
     <button class="pay-btn ${payMethod==='cash'?'active':''}" onclick="setPayMethod('cash')">💵 ${T('cash')}</button>
     <button class="pay-btn ${payMethod==='card'?'active':''}" onclick="setPayMethod('card')">💳 ${T('card')}</button>
   </div>
   ${payMethod==='cash'?`
-  <div class="card" style="margin-bottom:16px">
-    <div style="font-size:13px;color:var(--muted);margin-bottom:10px;font-weight:500">${T('cashReceived')}</div>
-    <input type="number" class="inp" style="font-size:22px;font-weight:700;text-align:center;margin-bottom:12px" value="${cashGiven}" placeholder="0" oninput="setCashGiven(this.value)"/>
-    ${given>=disc?`<div class="change-box"><span style="font-size:14px;font-weight:500;color:var(--muted)">${T('change')}</span><span style="font-size:22px;font-weight:700;color:var(--green)">${change.toFixed(0)} ₽</span></div>`:''}
-    ${cashGiven && given<disc?`<div style="text-align:center;color:var(--red);font-size:13px;margin-top:8px">${T('notEnough')} (${(disc-given).toFixed(0)} ₽)</div>`:''}
+  <div class="card" style="margin-bottom:20px;border-radius:24px">
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;font-weight:600">${T('cashReceived')}</div>
+    <input type="number" class="inp" style="font-size:24px;font-weight:800;text-align:center;margin-bottom:14px;border-radius:40px" value="${cashGiven}" placeholder="0" oninput="setCashGiven(this.value)"/>
+    ${given>=disc?`<div class="change-box"><span style="font-size:14px;font-weight:600;color:var(--text-secondary)">${T('change')}</span><span style="font-size:24px;font-weight:800;color:var(--green)">${change.toFixed(0)} ₽</span></div>`:''}
+    ${cashGiven && given<disc?`<div style="text-align:center;color:var(--red);font-size:13px;margin-top:10px;font-weight:600">${T('notEnough')} (${(disc-given).toFixed(0)} ₽)</div>`:''}
   </div>`:''}
-  <button class="btn btn-gold" ${!payMethod||(payMethod==='cash'&&given<disc)?'disabled style="opacity:0.4"':''} onclick="doConfirmPay()">
+  <button class="btn btn-gold" ${!payMethod||(payMethod==='cash'&&given<disc)?'disabled style="opacity:0.5;border-radius:40px"':''} onclick="doConfirmPayWithClient()" style="border-radius:40px">
     ${T('paid')}
   </button>
-  <button class="btn btn-outline" onclick="backToBill()">${T('cancel')}</button>`;
+  <button class="btn btn-outline" onclick="backToBill()" style="border-radius:40px">${T('cancel')}</button>`;
 }
 
-// Table Detail
+// ===== TABLE DETAIL =====
 function renderTableDetail(c) {
   const t=tables.find(t=>t.id===tableDetailId); if(!t) return;
   c.innerHTML = `
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-    <button class="btn btn-outline" style="width:auto;padding:8px 14px;margin-bottom:0" onclick="closeTableDetail()">← ${T('back')}</button>
-    <span style="color:var(--gold);font-size:16px;font-weight:600">${T('table')} №${tableDetailId}</span>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <button class="btn btn-outline" style="width:auto;padding:10px 18px;margin-bottom:0;border-radius:40px" onclick="closeTableDetail()">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:18px;font-weight:700">${T('table')} №${tableDetailId}</span>
     ${statusBadge(t.status)}
   </div>
-  <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px">
-    <button onclick="setTableDetailTab('info')" style="flex:1;padding:12px;background:none;border:none;color:${tableDetailTab==='info'?'var(--pink)':'var(--muted)'};border-bottom:${tableDetailTab==='info'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer;font-weight:500;transition:var(--transition)">${T('table')} №${tableDetailId}</button>
-    <button onclick="setTableDetailTab('bron')" style="flex:1;padding:12px;background:none;border:none;color:${tableDetailTab==='bron'?'var(--pink)':'var(--muted)'};border-bottom:${tableDetailTab==='bron'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer;font-weight:500;transition:var(--transition)">${T('bookings')}</button>
+  <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:20px">
+    <button onclick="setTableDetailTab('info')" style="flex:1;padding:14px;background:none;border:none;color:${tableDetailTab==='info'?'var(--pink)':'var(--text-secondary)'};border-bottom:${tableDetailTab==='info'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer;font-weight:600">${T('table')} №${tableDetailId}</button>
+    <button onclick="setTableDetailTab('bron')" style="flex:1;padding:14px;background:none;border:none;color:${tableDetailTab==='bron'?'var(--pink)':'var(--text-secondary)'};border-bottom:${tableDetailTab==='bron'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer;font-weight:600">${T('bookings')}</button>
   </div>
   ${tableDetailTab==='info'?`
-    <div style="background:var(--surface2);border-radius:16px;height:160px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:13px;color:var(--muted)">📷 ${lang==='ru'?'Фото стола':'Table photo'}</div>
-    <div style="display:flex;gap:12px;margin-bottom:16px">
-      <div class="metric"><div class="metric-label">Статус</div><div class="metric-val" style="font-size:14px;color:${statusColor(t.status)}">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div></div>
-      <div class="metric"><div class="metric-label">Броней</div><div class="metric-val" style="font-size:14px;color:var(--pink)">${t.brons?.length||0}</div></div>
-      ${t.status==='occupied'?`<div class="metric"><div class="metric-label">Счёт</div><div class="metric-val" style="font-size:14px;color:var(--gold)">${tableTotal(t)} ₽</div></div>`:''}
+    <div style="background:rgba(255,255,255,0.03);border-radius:24px;height:160px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:13px;color:var(--text-secondary);border:1px dashed var(--border)">📷 ${lang==='ru'?'Фото стола':'Table photo'}</div>
+    <div style="display:flex;gap:14px;margin-bottom:20px">
+      <div class="metric"><div class="metric-label">Статус</div><div class="metric-val" style="font-size:16px;color:${statusColor(t.status)}">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div></div>
+      <div class="metric"><div class="metric-label">Броней</div><div class="metric-val" style="font-size:16px;color:var(--pink)">${t.brons?.length||0}</div></div>
+      ${t.status==='occupied'?`<div class="metric"><div class="metric-label">Счёт</div><div class="metric-val" style="font-size:16px;color:var(--gold)">${tableTotal(t)} ₽</div></div>`:''}
     </div>
-    <button class="btn btn-pink" onclick="startNewBron(${tableDetailId})">+ ${T('newBron')}</button>
-    ${t.status!=='occupied'?`<button class="btn btn-green" onclick="doOpenTable(${tableDetailId})">${T('openTable')}</button>`:''}
-    ${t.status==='occupied'&&t.orders?.length>0?`<button class="btn btn-outline-gold" onclick="startRaschet(${tableDetailId});closeTableDetail()">💰 ${T('checkout')}</button>`:''}
+    <button class="btn btn-pink" onclick="startNewBron(${tableDetailId})" style="border-radius:40px">+ ${T('newBron')}</button>
+    ${t.status!=='occupied'?`<button class="btn btn-green" onclick="doOpenTable(${tableDetailId})" style="border-radius:40px">${T('openTable')}</button>`:''}
+    ${t.status==='occupied'&&t.orders?.length>0?`<button class="btn btn-outline-gold" onclick="startRaschet(${tableDetailId});closeTableDetail()" style="border-radius:40px">💰 ${T('checkout')}</button>`:''}
   `:`
-    ${!t.brons?.length?`<div style="text-align:center;color:var(--muted);padding:40px">${T('noBookings')}</div>`
-    :t.brons.map(b=>`
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-        <span style="font-weight:600">${b.guest_name}</span><span style="color:var(--pink);font-size:13px;font-weight:500">${b.arrival_time}</span>
+    ${!t.brons?.length?`<div style="text-align:center;color:var(--text-secondary);padding:50px">${T('noBookings')}</div>`
+    :t.brons.filter(b=>b.status==='active').map(b=>`
+    <div class="card" style="border-radius:24px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="font-weight:700">${b.guest_name}</span><span style="color:var(--pink);font-size:13px;font-weight:600">${b.arrival_time}</span>
       </div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:4px">${b.guest_phone||''} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
-      ${b.note?`<div style="font-size:12px;color:var(--muted);margin-top:6px;font-style:italic">${b.note}</div>`:''}
-      <div style="display:flex;gap:10px;margin-top:12px">
-        <button class="btn btn-green btn-sm" onclick="doOpenTable(${tableDetailId})">${T('open')}</button>
-        <button class="btn btn-outline-red btn-sm" onclick="showConfirmCancelBron('${b.id}',${tableDetailId})">✕ ${T('cancelBron')}</button>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px">${b.guest_phone||''} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
+      ${b.note?`<div style="font-size:12px;color:var(--text-secondary);margin-top:8px;font-style:italic">${b.note}</div>`:''}
+      <div style="display:flex;gap:12px;margin-top:14px">
+        <button class="btn btn-green btn-sm" onclick="doOpenTable(${tableDetailId})" style="border-radius:40px">${T('open')}</button>
+        <button class="btn btn-outline-red btn-sm" onclick="showConfirmCancelBron('${b.id}',${tableDetailId})" style="border-radius:40px">✕ ${T('cancelBron')}</button>
       </div>
     </div>`).join('')}
-    <button class="btn btn-pink" onclick="startNewBron(${tableDetailId})">+ ${T('newBron')}</button>
+    <button class="btn btn-pink" onclick="startNewBron(${tableDetailId})" style="border-radius:40px">+ ${T('newBron')}</button>
   `}`;
 }
 
@@ -1795,7 +2004,7 @@ function showConfirmCancelBron(bronId, tableId) {
   showConfirm(T('confirmCancelBron'), () => doCancelBron(bronId, tableId));
 }
 
-// Bron
+// ===== BRON =====
 function renderBron(c) {
   if(bronTab==='new'){ renderNewBron(c); return; }
   
@@ -1810,22 +2019,22 @@ function renderBron(c) {
   }).length;
 
   c.innerHTML = `
-  <div style="display:flex;gap:10px;margin-bottom:16px">
-    <div class="search-wrap"><span class="search-icon">🔍</span><input type="search" class="inp" placeholder="${lang==='ru'?'Имя или телефон':'Name or phone'}" value="${searchBron}" oninput="handleBronSearch(this.value)" inputmode="search"/></div>
-    <button class="btn btn-pink" style="width:auto;padding:0 18px;white-space:nowrap;margin-bottom:0" onclick="setBronTab('new')">+ ${T('bron')}</button>
+  <div style="display:flex;gap:12px;margin-bottom:20px">
+    <div class="search-wrap"><span class="search-icon">🔍</span><input type="search" class="inp" placeholder="${lang==='ru'?'Имя или телефон':'Name or phone'}" value="${searchBron}" oninput="updateBronSearchTemp(this.value)" id="bron-search-input" inputmode="search" style="border-radius:40px"/></div>
+    <button class="btn btn-pink" style="width:auto;padding:0 22px;white-space:nowrap;margin-bottom:0;border-radius:40px" onclick="setBronTab('new')">+ ${T('bron')}</button>
   </div>
-  ${!brons.length?`<div style="text-align:center;color:var(--muted);padding:40px">${T('noBookings')}</div>`
+  ${!brons.length?`<div style="text-align:center;color:var(--text-secondary);padding:50px">${T('noBookings')}</div>`
   :brons.map(b=>`
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-      <span style="font-weight:600">${b.guest_name}</span><span style="color:var(--pink);font-size:13px;font-weight:500">${b.arrival_time}</span>
+  <div class="card" style="border-radius:24px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+      <span style="font-weight:700">${b.guest_name}</span><span style="color:var(--pink);font-size:13px;font-weight:600">${b.arrival_time}</span>
     </div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">${T('table')} №${b.tableId} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
-    <div style="font-size:13px;color:var(--muted)">${b.guest_phone||''}</div>
-    ${b.note?`<div style="font-size:12px;color:var(--muted);margin-top:6px;font-style:italic">${b.note}</div>`:''}
-    <div style="display:flex;gap:10px;margin-top:12px">
-      <button class="btn btn-green btn-sm" onclick="doOpenTable(${b.tableId})">${T('open')}</button>
-      <button class="btn btn-outline-red btn-sm" onclick="showConfirmCancelBron('${b.id}',${b.tableId})">✕ ${T('cancelBron')}</button>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px">${T('table')} №${b.tableId} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
+    <div style="font-size:13px;color:var(--text-secondary)">${b.guest_phone||''}</div>
+    ${b.note?`<div style="font-size:12px;color:var(--text-secondary);margin-top:8px;font-style:italic">${b.note}</div>`:''}
+    <div style="display:flex;gap:12px;margin-top:14px">
+      <button class="btn btn-green btn-sm" onclick="doOpenTable(${b.tableId})" style="border-radius:40px">${T('open')}</button>
+      <button class="btn btn-outline-red btn-sm" onclick="showConfirmCancelBron('${b.id}',${b.tableId})" style="border-radius:40px">✕ ${T('cancelBron')}</button>
     </div>
   </div>`).join('')}
   <div class="bron-counters">
@@ -1833,58 +2042,63 @@ function renderBron(c) {
     <div class="bron-counter"><div class="bron-counter-label" style="color:var(--green)">${T('openCount')}</div><div class="bron-counter-val" style="color:var(--green)">${tables.filter(t=>t.status==='occupied').length}</div></div>
     <div class="bron-counter"><div class="bron-counter-label" style="color:var(--pink)">${T('newCount')}</div><div class="bron-counter-val" style="color:var(--pink)">${tables.filter(t=>t.status==='reserved').length}</div></div>
   </div>`;
+  
+  setTimeout(() => {
+    const searchInput = document.getElementById('bron-search-input');
+    if (searchInput) searchInput.focus();
+  }, 50);
 }
 
-function handleBronSearch(value) {
+function updateBronSearchTemp(value) {
   if (searchBronTimeout) clearTimeout(searchBronTimeout);
   searchBronTimeout = setTimeout(() => {
     searchBron = value;
     renderContent();
-  }, 500);
+  }, 600);
 }
 
 function renderNewBron(c) {
   const today = new Date().toISOString().split('T')[0];
   c.innerHTML = `
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-    <button class="btn btn-outline" style="width:auto;padding:8px 14px;margin-bottom:0" onclick="setBronTab('list')">← ${T('back')}</button>
-    <span style="color:var(--gold);font-size:16px;font-weight:600">${T('newBron')}</span>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <button class="btn btn-outline" style="width:auto;padding:10px 18px;margin-bottom:0;border-radius:40px" onclick="setBronTab('list')">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:18px;font-weight:700">${T('newBron')}</span>
   </div>
-  <div class="card">
+  <div class="card" style="border-radius:28px">
     <label class="lbl">${T('table')}</label>
     <div class="table-buttons">
-      ${tables.filter(t=>t.status!=='occupied').map(t=>`<button class="table-btn ${bronTableId===t.id?'active':''}" onclick="setBronTableId(${t.id})">№${t.id}</button>`).join('')}
+      ${tables.filter(t=>t.status!=='occupied').map(t=>`<button class="table-btn ${bronTableId===t.id?'active':''}" onclick="setBronTableId(${t.id})" style="border-radius:40px">№${t.id}</button>`).join('')}
     </div>
     <label class="lbl">${T('guestName')}</label>
-    <input class="inp" style="margin-bottom:16px" id="bron-name" value="${bronForm.name}" placeholder="${lang==='ru'?'Иван Петров':'John Smith'}"/>
+    <input class="inp" style="margin-bottom:20px;border-radius:40px" id="bron-name" value="${bronForm.name}" placeholder="${lang==='ru'?'Иван Петров':'John Smith'}"/>
     
     <label class="lbl">${T('phone')}</label>
-    <input class="inp phone-inp" style="margin-bottom:16px" id="bron-phone" value="${bronForm.phone}" placeholder="+7 ___ ___ __ __" oninput="handlePhoneInput(this)"/>
+    <input class="inp phone-inp" style="margin-bottom:20px;border-radius:40px" id="bron-phone" value="${bronForm.phone}" placeholder="+7 ___ ___ __ __" oninput="handlePhoneInput(this)"/>
     
     <div class="equal-row">
-      <div class="equal-item"><label class="lbl">${T('date')}</label><input type="date" class="inp" id="bron-date" value="${today}" min="${today}"/></div>
-      <div class="equal-item"><label class="lbl">${T('time')}</label><input type="time" class="inp" id="bron-time" value="${bronForm.time}" min="12:00" max="23:59"/></div>
+      <div class="equal-item"><label class="lbl">${T('date')}</label><input type="date" class="inp" id="bron-date" value="${today}" min="${today}" style="border-radius:40px"/></div>
+      <div class="equal-item"><label class="lbl">${T('time')}</label><input type="time" class="inp" id="bron-time" value="${bronForm.time}" min="12:00" max="23:59" style="border-radius:40px"/></div>
     </div>
     
     <div class="equal-row">
-      <div class="equal-item"><label class="lbl">${T('guests')}</label><input type="number" class="inp" id="bron-guests" value="${bronForm.guests}" min="1"/></div>
+      <div class="equal-item"><label class="lbl">${T('guests')}</label><input type="number" class="inp" id="bron-guests" value="${bronForm.guests}" min="1" style="border-radius:40px"/></div>
       <div class="equal-item"><div style="visibility:hidden">placeholder</div></div>
     </div>
     
     <label class="lbl">${T('note')}</label>
-    <input class="inp" id="bron-note" value="${bronForm.note}" placeholder="${lang==='ru'?'День рождения, особые пожелания...':'Special requests...'}"/>
+    <input class="inp" id="bron-note" value="${bronForm.note}" placeholder="${lang==='ru'?'День рождения, особые пожелания...':'Special requests...'}" style="border-radius:40px"/>
   </div>
-  <button class="btn btn-pink" onclick="doSaveBronFromForm()">${T('save')} →</button>`;
+  <button class="btn btn-pink" onclick="doSaveBronFromForm()" style="border-radius:40px">${T('save')} →</button>`;
 }
 
 function handlePhoneInput(input) {
   bronForm.phone = formatPhoneRussian(input);
 }
 
-// Analytics
+// ===== ANALYTICS =====
 function renderAnalyticsTab(c) {
   if(!waiter?.is_admin){ 
-    c.innerHTML=`<div style="text-align:center;padding:60px;color:var(--muted)">${lang==='ru'?'Только для администратора':'Admin only'}</div>`; 
+    c.innerHTML=`<div style="text-align:center;padding:60px;color:var(--text-secondary)">${lang==='ru'?'Только для администратора':'Admin only'}</div>`; 
     return; 
   }
   
@@ -1893,28 +2107,38 @@ function renderAnalyticsTab(c) {
   if(!analyticsTo) analyticsTo = today;
 
   const live = `
-  <div class="card" style="margin-bottom:16px">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">${T('liveStatus')}</div>
-    <div style="display:flex;gap:12px">
-      <div class="metric"><div class="metric-label" style="color:var(--gold)">${T('busy')}</div><div class="metric-val" style="color:var(--gold);font-size:20px">${tables.filter(t=>t.status==='occupied').length}</div></div>
-      <div class="metric"><div class="metric-label" style="color:var(--green)">${T('freeCount')}</div><div class="metric-val" style="color:var(--green);font-size:20px">${tables.filter(t=>t.status==='free').length}</div></div>
-      <div class="metric"><div class="metric-label" style="color:var(--pink)">${T('reserved2')}</div><div class="metric-val" style="color:var(--pink);font-size:20px">${tables.filter(t=>t.status==='reserved').length}</div></div>
+  <div class="card" style="margin-bottom:20px;border-radius:28px">
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;text-transform:uppercase;letter-spacing:1.5px">${T('liveStatus')}</div>
+    <div style="display:flex;gap:14px">
+      <div class="metric"><div class="metric-label" style="color:var(--gold)">${T('busy')}</div><div class="metric-val" style="color:var(--gold);font-size:22px">${tables.filter(t=>t.status==='occupied').length}</div></div>
+      <div class="metric"><div class="metric-label" style="color:var(--green)">${T('freeCount')}</div><div class="metric-val" style="color:var(--green);font-size:22px">${tables.filter(t=>t.status==='free').length}</div></div>
+      <div class="metric"><div class="metric-label" style="color:var(--pink)">${T('reserved2')}</div><div class="metric-val" style="color:var(--pink);font-size:22px">${tables.filter(t=>t.status==='reserved').length}</div></div>
     </div>
   </div>`;
 
   c.innerHTML = live + `
-  <div class="card">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">${T('period')}</div>
-    <div class="toggle" style="margin-bottom:14px">
-      ${['today','week','month','year'].map(p=>`<button class="toggle-btn ${analyticsTab===p?'active':''}" onclick="setAnalyticsPreset('${p}')">${T(p)}</button>`).join('')}
+  <div class="card" style="border-radius:28px">
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;text-transform:uppercase;letter-spacing:1.5px">${T('period')}</div>
+    <div class="toggle" style="margin-bottom:16px">
+      ${['today','week','month','year'].map(p=>`<button class="toggle-btn ${analyticsTab===p?'active':''}" onclick="setAnalyticsPreset('${p}')" style="border-radius:40px">${T(p)}</button>`).join('')}
     </div>
     <div class="date-range">
-      <div class="date-item"><label class="lbl">${T('from')}</label><input type="date" class="inp" id="analytics-from" value="${analyticsFrom}"/></div>
-      <div class="date-item"><label class="lbl">${T('to')}</label><input type="date" class="inp" id="analytics-to" value="${analyticsTo}"/></div>
+      <div class="date-item"><label class="lbl">${T('from')}</label><input type="date" class="inp" id="analytics-from" value="${analyticsFrom}" style="border-radius:40px;font-size:12px;text-align:center"/></div>
+      <div class="date-item"><label class="lbl">${T('to')}</label><input type="date" class="inp" id="analytics-to" value="${analyticsTo}" style="border-radius:40px;font-size:12px;text-align:center"/></div>
     </div>
-    <button class="btn btn-gold" onclick="doLoadAnalyticsFromDates()">${lang==='ru'?'Показать':'Show'}</button>
+    <button class="btn btn-gold" onclick="doLoadAnalyticsFromDates()" style="border-radius:40px">${lang==='ru'?'Показать':'Show'}</button>
   </div>
   <div id="analytics-results"><div class="loader">${lang==='ru'?'Выберите период и нажмите Показать':'Select period and click Show'}</div></div>`;
+}
+
+async function loadAnalytics(from, to) {
+  const {data:payments} = await sb.from('payments')
+    .select('*, waiters(name)')
+    .gte('paid_at', from+'T00:00:00')
+    .lte('paid_at', to+'T23:59:59')
+    .order('paid_at', {ascending:false});
+  analyticsData = payments||[];
+  renderAnalytics();
 }
 
 function renderAnalytics() {
@@ -1938,57 +2162,56 @@ function renderAnalytics() {
   });
 
   el.innerHTML = `
-  <div class="card">
-    <div style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--gold)">📊 ${T('totalRevenue')}</div>
-    <div style="font-size:28px;font-weight:700;color:var(--gold);margin-bottom:12px">${fmtRub(total)}</div>
-    <div style="display:flex;gap:12px">
-      <div class="metric"><div class="metric-label">${T('checksCount')}</div><div class="metric-val" style="font-size:18px">${analyticsData.length}</div></div>
-      <div class="metric"><div class="metric-label">${T('avgCheck')}</div><div class="metric-val" style="font-size:18px">${fmtRub(avgCheck)}</div></div>
+  <div class="card" style="border-radius:28px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:14px;color:var(--gold)">📊 ${T('totalRevenue')}</div>
+    <div style="font-size:32px;font-weight:800;color:var(--gold);margin-bottom:14px">${fmtRub(total)}</div>
+    <div style="display:flex;gap:14px">
+      <div class="metric"><div class="metric-label">${T('checksCount')}</div><div class="metric-val" style="font-size:20px">${analyticsData.length}</div></div>
+      <div class="metric"><div class="metric-label">${T('avgCheck')}</div><div class="metric-val" style="font-size:20px">${fmtRub(avgCheck)}</div></div>
     </div>
   </div>
   
-  <div class="card">
-    <div style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--gold)">💰 ${T('salesByWaiter')}</div>
+  <div class="card" style="border-radius:28px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:14px;color:var(--gold)">💰 ${T('salesByWaiter')}</div>
     <table class="stats-table">
       <thead><tr><th>${lang==='ru'?'Официант':'Waiter'}</th><th>${T('revenue')}</th><th>${T('bonus')}</th></tr></thead>
       <tbody>
         ${Object.entries(byWaiter).map(([name,sales])=>`
-        <tr><td>👤 ${name}</td><td style="color:var(--gold);font-weight:600">${fmtRub(sales)}</td><td style="color:var(--green)">${fmtRub(sales*0.025)}</td>
+        <tr><td style="font-weight:600">👤 ${name}</td><td style="color:var(--gold);font-weight:700">${fmtRub(sales)}</td><td style="color:var(--green)">${fmtRub(sales*0.025)}</td>
         `).join('')}
       </tbody>
     </table>
   </div>
   
-  <div class="card">
-    <div style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--gold)">💳 ${lang==='ru'?'По способам оплаты':'By payment method'}</div>
-    <div style="display:flex;gap:12px">
-      <div class="metric"><div class="metric-label">💵 ${T('cash')}</div><div class="metric-val" style="font-size:16px">${fmtRub(cash)}</div></div>
-      <div class="metric"><div class="metric-label">💳 ${T('card')}</div><div class="metric-val" style="font-size:16px">${fmtRub(card)}</div></div>
+  <div class="card" style="border-radius:28px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:14px;color:var(--gold)">💳 ${lang==='ru'?'По способам оплаты':'By payment method'}</div>
+    <div style="display:flex;gap:14px">
+      <div class="metric"><div class="metric-label">💵 ${T('cash')}</div><div class="metric-val" style="font-size:18px">${fmtRub(cash)}</div></div>
+      <div class="metric"><div class="metric-label">💳 ${T('card')}</div><div class="metric-val" style="font-size:18px">${fmtRub(card)}</div></div>
     </div>
   </div>
   
-  <div style="display:flex;gap:10px;margin-bottom:16px">
-    <button class="btn btn-outline-gold" onclick="exportToCSV()" style="flex:1">📄 ${T('exportCSV')}</button>
-    <button class="btn btn-outline-gold" onclick="exportToPDF()" style="flex:1">📑 ${T('exportPDF')}</button>
+  <div style="margin-bottom:20px">
+    <button class="btn btn-gold" onclick="exportToExcel()" style="border-radius:40px">📊 ${T('exportCSV')}</button>
   </div>
   
-  <div class="card">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">${lang==='ru'?'Последние платежи':'Recent payments'}</div>
+  <div class="card" style="border-radius:28px">
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;text-transform:uppercase;letter-spacing:1.5px">${lang==='ru'?'Последние платежи':'Recent payments'}</div>
     ${analyticsData.slice(0,10).map(p=>`
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px">
       <div>
-        <div style="font-weight:500">${T('table')} №${p.table_id} · ${p.waiters?.name||'?'}</div>
-        <div style="color:var(--muted)">${new Date(p.paid_at).toLocaleString()}</div>
+        <div style="font-weight:600">${T('table')} №${p.table_id} · ${p.waiters?.name||'?'}</div>
+        <div style="color:var(--text-secondary);font-size:11px">${new Date(p.paid_at).toLocaleString()}</div>
       </div>
       <div style="text-align:right">
-        <div style="color:var(--gold);font-weight:600">${p.total_final} ₽</div>
-        <div style="color:var(--muted)">${p.payment_method==='cash'?'💵':'💳'}${p.discount>0?' -'+p.discount+'%':''}</div>
+        <div style="color:var(--gold);font-weight:700">${p.total_final} ₽</div>
+        <div style="color:var(--text-secondary);font-size:11px">${p.payment_method==='cash'?'💵':'💳'}${p.discount>0?' -'+p.discount+'%':''}</div>
       </div>
     </div>`).join('')}
   </div>`;
 }
 
-// Action handlers
+// ===== ACTION HANDLERS =====
 function setTab(t){ 
   tab=t; 
   selTable=null; 
@@ -1997,6 +2220,7 @@ function setTab(t){
   billTable=null; 
   tableDetailId=null; 
   if(t==='bron') bronTab='list'; 
+  if(t==='crm') loadClients();
   renderMain(); 
 }
 
@@ -2008,7 +2232,12 @@ function setViewMode(m){
 }
 
 function selTableClick(id){ selTable = selTable===id ? null : id; renderContent(); }
-function startAddOrder(id){ addingTo=id; menuSearch=''; renderContent(); }
+function startAddOrder(id){ 
+  addingTo=id; 
+  menuSearchTemp = '';
+  menuSearch = '';
+  renderContent(); 
+}
 function setAddingTo(v){ addingTo=v; renderContent(); }
 function setMenuCat(v){ menuCat=v; renderContent(); }
 function startRaschet(id){ расчётTable=id; selTable=null; renderContent(); }
@@ -2022,7 +2251,13 @@ function closeTableDetail(){ tableDetailId=null; renderContent(); }
 function setTableDetailTab(t){ tableDetailTab=t; renderContent(); }
 function setBronTab(t){ bronTab=t; renderContent(); }
 function setBronTableId(id){ bronTableId=id; renderContent(); }
-function startNewBron(id){ bronTableId=id; bronForm={name:'', phone:'', guests:'2', date:'', time:'19:00', note:''}; tab='bron'; bronTab='new'; renderMain(); }
+function startNewBron(id){ 
+  bronTableId=id; 
+  bronForm={name:'', phone:'', guests:'2', date:'', time:'19:00', note:''}; 
+  tab='bron'; 
+  bronTab='new'; 
+  renderMain(); 
+}
 function doLogout(){ waiter=null; screen='login'; if(subTables) sb.removeChannel(subTables); render(); }
 
 function setAnalyticsPreset(p){
@@ -2058,16 +2293,11 @@ async function doAddOrder(id,ru,en,price,cat){
   if(ex){ 
     await sb.from('orders').update({qty:ex.qty+1}).eq('id',ex.id); 
     await sb.from('tables').update({status:'occupied', waiter_id:waiter.id}).eq('id',addingTo); 
+    await loadTables();
+    renderContent();
   } else { 
     await dbAddOrder(addingTo,item,cat); 
   }
-  await loadTables(); 
-  renderContent();
-}
-
-async function doRemoveOrder(orderId,tableId){
-  await dbRemoveOrder(orderId,tableId); 
-  renderContent();
 }
 
 async function doSetDiscount(tableId,pct){
@@ -2075,13 +2305,17 @@ async function doSetDiscount(tableId,pct){
   renderContent();
 }
 
-async function doConfirmPay(){
+async function doConfirmPayWithClient(){
   if(!payMethod) return;
   const t=tables.find(t=>t.id===billTable);
   const raw=tableTotal(t,false), disc=tableTotal(t,true);
   const given=parseFloat(cashGiven)||0, chg=given-disc;
   if(payMethod==='cash' && given<disc) return;
-  await dbConfirmPay(billTable,payMethod,raw,disc,t.discount,given,chg);
+  
+  const clientSelect = document.getElementById('client-select');
+  const clientPhone = clientSelect ? clientSelect.value : null;
+  
+  await dbConfirmPay(billTable,payMethod,raw,disc,t.discount,given,chg,clientPhone);
   toast(lang==='ru'?'✅ Стол закрыт':'✅ Table closed');
   billTable=null; payMethod=null; cashGiven=''; selTable=null; tab='tables';
   renderMain();
@@ -2113,10 +2347,23 @@ async function doSaveBronFromForm(){
   
   try {
     await dbSaveBron(bronTableId, {name, phone, date, time, guests, note});
+    
+    // Ajouter automatiquement le client à la base CRM
+    const {data: existing} = await sb.from('clients').select('*').eq('phone', phone);
+    if (!existing || existing.length === 0) {
+      await sb.from('clients').insert({
+        name: name,
+        phone: phone,
+        visits: 0,
+        total_spent: 0,
+        last_visit: new Date().toISOString()
+      });
+    }
+    
     bronForm={name:'', phone:'', guests:'2', date:'', time:'19:00', note:''};
     bronTableId=null; 
     bronTab='list';
-    toast(lang==='ru'?'✅ Бронь сохранена':'✅ Booking saved');
+    toast(lang==='ru'?'✅ Бронь сохранена и клиент добавлен в CRM':'✅ Booking saved and client added to CRM');
     tab='bron'; 
     renderMain();
   } catch(e){
@@ -2138,7 +2385,7 @@ async function doCancelBron(bronId,tableId){
   renderContent();
 }
 
-// Load preferences and initialize
+// ===== INITIALIZATION =====
 loadPreferences();
 render();
 </script>
