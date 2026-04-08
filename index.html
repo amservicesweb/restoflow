@@ -44,6 +44,7 @@
     --pink: #C0395A;
     --shadow: 0 4px 12px rgba(0,0,0,0.3);
     --transition: all 0.2s ease;
+    --neon-glow: 0 0 10px rgba(201,168,76,0.5), 0 0 20px rgba(201,168,76,0.3);
   }
   
   input, button {
@@ -60,7 +61,7 @@
     transform: scale(0.97);
   }
   
-  /* Header avec safe area */
+  /* Header */
   .hdr {
     background: rgba(26, 26, 26, 0.95);
     backdrop-filter: blur(10px);
@@ -399,6 +400,7 @@
     padding: 12px;
     border: 1px solid #2E2E2E;
     box-shadow: var(--shadow);
+    position: relative;
   }
   
   /* Metric */
@@ -688,15 +690,33 @@
     transform: scale(0.95);
   }
   
-  /* Time row */
-  .time-row {
+  /* Time row - égal */
+  .equal-row {
     display: flex;
     gap: 12px;
     margin-bottom: 16px;
   }
   
-  .time-item {
+  .equal-item {
     flex: 1;
+  }
+  
+  /* Analytics table */
+  .stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  
+  .stats-table th, .stats-table td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .stats-table th {
+    color: var(--gold);
+    font-weight: 600;
   }
   
   /* RestoFlow branding */
@@ -725,6 +745,16 @@
   
   .card, .floor-container {
     animation: fadeIn 0.3s ease;
+  }
+  
+  /* 3D Neon Text */
+  .neon-3d {
+    font-family: 'Segoe UI', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    letter-spacing: 3px;
+    fill: var(--gold);
+    filter: drop-shadow(0 0 5px rgba(201,168,76,0.5)) drop-shadow(0 0 10px rgba(201,168,76,0.3));
   }
 </style>
 </head>
@@ -759,7 +789,7 @@ let payMethod = null;
 let cashGiven = '';
 let bronTab = 'list';
 let bronTableId = null;
-let bronForm = {name:'', phone:'', guests:'2', time:'19:00', note:''};
+let bronForm = {name:'', phone:'', guests:'2', date:'', time:'19:00', note:''};
 let searchBron = '';
 let searchBronTimeout = null;
 let tableDetailId = null;
@@ -771,6 +801,13 @@ let analyticsData = null;
 
 // Format rubles
 const fmtRub = n => Math.round(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
+
+// Format date to Russian DD.MM.YYYY
+function formatDateRussian(dateStr) {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  return `${day}.${month}.${year}`;
+}
 
 // Format phone to Russian format +7 xxx xxx xx xx
 function formatPhoneRussian(input) {
@@ -785,6 +822,26 @@ function formatPhoneRussian(input) {
   if (v.length > 9) f += ' ' + v.slice(9, 11);
   input.value = f;
   return f;
+}
+
+// Check if time is within working hours (12:00 to 03:00 next day)
+function isWorkingHours(timeStr) {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const totalMinutes = hours * 60 + minutes;
+  // Working from 12:00 (720 min) to 03:00 next day (180 min)
+  if (totalMinutes >= 720 || totalMinutes <= 180) return true;
+  return false;
+}
+
+// Check double booking
+async function checkDoubleBooking(tableId, date, time) {
+  const {data: existingBrons} = await sb.from('brons')
+    .select('*')
+    .eq('table_id', tableId)
+    .eq('status', 'active')
+    .eq('arrival_date', date)
+    .eq('arrival_time', time);
+  return existingBrons && existingBrons.length > 0;
 }
 
 // Menu data
@@ -894,7 +951,9 @@ const T = k => lang === 'ru' ? ({
   exportCSV:'Экспорт CSV', from:'С', to:'По', applyDiscount:'Применить скидку?',
   discNote:'(не распространяется на кальяны)',
   open:'Открыть', late:'Ожидаем', openCount:'Открыто', newCount:'Новые',
-  noAnalytics:'Нет аналитики за выбранный период', time:'Время',
+  noAnalytics:'Нет аналитики за выбранный период', time:'Время', date:'Дата',
+  avgCheck:'Средний чек', checksCount:'Кол-во чеков',
+  revenueByWaiter:'Выручка по официантам', totalRevenue:'Общая выручка',
 }[k]||k) : ({
   tables:'Tables', bron:'Bookings', analytics:'Analytics',
   free:'Free', occupied:'Busy', reserved:'Reserved',
@@ -918,7 +977,9 @@ const T = k => lang === 'ru' ? ({
   exportCSV:'Export CSV', from:'From', to:'To', applyDiscount:'Apply discount?',
   discNote:'(not applicable to hookahs)',
   open:'Open', late:'Late', openCount:'Open', newCount:'New',
-  noAnalytics:'No analytics for selected period', time:'Time',
+  noAnalytics:'No analytics for selected period', time:'Time', date:'Date',
+  avgCheck:'Average check', checksCount:'Number of checks',
+  revenueByWaiter:'Revenue by waiter', totalRevenue:'Total revenue',
 }[k]||k);
 
 const toast = (msg, dur=2500) => {
@@ -1012,8 +1073,8 @@ async function dbConfirmPay(tableId, method, raw, final, disc, given, chg) {
 async function dbSaveBron(tableId, form) {
   await sb.from('brons').insert({
     table_id:tableId, guest_name:form.name, guest_phone:form.phone,
-    guests_count:parseInt(form.guests)||1, arrival_time:form.time,
-    note:form.note, status:'active'
+    guests_count:parseInt(form.guests)||1, arrival_date:form.date,
+    arrival_time:form.time, note:form.note, status:'active'
   });
   await sb.from('tables').update({status:'reserved'}).eq('id',tableId);
   await loadTables();
@@ -1045,24 +1106,45 @@ async function loadAnalytics(from, to) {
   renderAnalytics();
 }
 
-function exportCSV() {
+function exportDetailedStats() {
   if(!analyticsData || analyticsData.length===0) {
     toast(lang==='ru'?'Нет данных для экспорта':'No data to export');
     return;
   }
-  const rows = [['Date','Table','Waiter','Total','Discount','Method']];
+  
+  const total = analyticsData.reduce((s,p)=>s+p.total_final,0);
+  const avgCheck = total / analyticsData.length;
+  
+  const byWaiter = {};
   analyticsData.forEach(p => {
-    rows.push([
-      new Date(p.paid_at).toLocaleString(),
-      p.table_id, p.waiters?.name||'',
-      p.total_final, p.discount+'%', p.payment_method
-    ]);
+    const name = p.waiters?.name || 'Unknown';
+    byWaiter[name] = (byWaiter[name] || 0) + p.total_final;
   });
-  const csv = rows.map(r=>r.join(',')).join('\n');
+  
+  let report = `=== SUPERNOUA LOUNGE BAR ===\n`;
+  report += `${T('period')}: ${formatDateRussian(analyticsFrom)} - ${formatDateRussian(analyticsTo)}\n`;
+  report += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  report += `${T('totalRevenue')}: ${fmtRub(total)}\n`;
+  report += `${T('checksCount')}: ${analyticsData.length}\n`;
+  report += `${T('avgCheck')}: ${fmtRub(avgCheck)}\n`;
+  report += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  report += `${T('salesByWaiter')}:\n`;
+  for (const [name, sales] of Object.entries(byWaiter)) {
+    report += `  👤 ${name}: ${fmtRub(sales)} (${Math.round(sales/total*100)}%)\n`;
+  }
+  report += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  report += `${lang==='ru'?'Последние платежи':'Recent payments'}:\n`;
+  analyticsData.slice(0,10).forEach(p => {
+    report += `  ${T('table')} ${p.table_id} | ${p.total_final} ₽ | ${p.payment_method==='cash'?'💵':'💳'} | ${p.waiters?.name||'?'}\n`;
+  });
+  
+  const blob = new Blob([report], {type: 'text/plain'});
   const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download = 'supernova_analytics.csv';
+  a.href = URL.createObjectURL(blob);
+  a.download = `supernova_report_${analyticsFrom}_${analyticsTo}.txt`;
   a.click();
+  URL.revokeObjectURL(a.href);
+  toast(lang==='ru'?'✅ Отчёт экспортирован':'✅ Report exported');
 }
 
 // Render
@@ -1250,6 +1332,24 @@ function renderFloorPlan() {
     return `<g onclick="selTableClick(${tc.id})" style="cursor:pointer">${sofasSVG}${shadow}${tableShape}${label}${sub}</g>`;
   }).join('');
 
+  // 3D Neon Text "СУПЕРНОВА" au milieu
+  const neonText = `
+    <text x="182" y="195" text-anchor="middle" font-size="16" font-weight="900" fill="var(--gold)" font-family="Segoe UI, sans-serif" letter-spacing="3" filter="url(#glow)">
+      СУПЕРНОВА
+    </text>
+    <defs>
+      <filter id="glow">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur1"/>
+        <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur2"/>
+        <feMerge>
+          <feMergeNode in="blur2"/>
+          <feMergeNode in="blur1"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+  `;
+
   return `<div class="floor-container" style="overflow:hidden">
   <svg id="floor-svg" viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:auto">
     <rect x="1" y="1" width="${W-2}" height="${H-2}" rx="12" fill="#111" stroke="#2e2e2e" stroke-width="1.5"/>
@@ -1259,6 +1359,7 @@ function renderFloorPlan() {
     <rect x="60" y="${H-28}" width="244" height="22" rx="5" fill="#1e1e1e" stroke="#3a3a3a" stroke-width="1"/>
     <text x="182" y="${H-14}" text-anchor="middle" font-size="8.5" fill="#666" letter-spacing="2">БАР</text>
     ${shapes}
+    ${neonText}
   </svg></div>`;
 }
 
@@ -1311,7 +1412,7 @@ function renderAddOrder(c) {
   </div>
   <div style="position:relative;margin-bottom:14px">
     <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%)">🔍</span>
-    <input class="inp" style="padding-left:42px" placeholder="${T('searchMenu')}" value="${menuSearch}" oninput="handleMenuSearch(this.value)" inputmode="search"/>
+    <input type="search" class="inp" style="padding-left:42px" placeholder="${T('searchMenu')}" value="${menuSearch}" oninput="handleMenuSearch(this.value)" inputmode="search"/>
   </div>
   ${!menuSearch?`<div class="cat-scroll">${MENU_CATS.map(c=>`<button class="cat-btn ${menuCat===c.k?'active':''}" onclick="setMenuCat('${c.k}')">${c[lang]}</button>`).join('')}</div>`:''}
   <div style="max-height:400px;overflow-y:auto">
@@ -1346,7 +1447,7 @@ function handleMenuSearch(value) {
   menuSearchTimeout = setTimeout(() => {
     menuSearch = value;
     renderContent();
-  }, 300);
+  }, 500);
 }
 
 // Checkout
@@ -1476,7 +1577,6 @@ function renderTableDetail(c) {
 function renderBron(c) {
   if(bronTab==='new'){ renderNewBron(c); return; }
   
-  // Filter active brons only (not opened/cancelled)
   const brons = tables.flatMap(t=>(t.brons||[]).filter(b=>b.status==='active').map(b=>({...b, tableId:t.id})))
     .filter(b=>!searchBron || b.guest_name?.toLowerCase().includes(searchBron.toLowerCase()) || b.guest_phone?.includes(searchBron));
   
@@ -1489,7 +1589,7 @@ function renderBron(c) {
 
   c.innerHTML = `
   <div style="display:flex;gap:10px;margin-bottom:16px">
-    <div class="search-wrap"><span class="search-icon">🔍</span><input class="inp" placeholder="${lang==='ru'?'Имя или телефон':'Name or phone'}" value="${searchBron}" oninput="handleBronSearch(this.value)" inputmode="search"/></div>
+    <div class="search-wrap"><span class="search-icon">🔍</span><input type="search" class="inp" placeholder="${lang==='ru'?'Имя или телефон':'Name or phone'}" value="${searchBron}" oninput="handleBronSearch(this.value)" inputmode="search"/></div>
     <button class="btn btn-pink" style="width:auto;padding:0 18px;white-space:nowrap;margin-bottom:0" onclick="setBronTab('new')">+ ${T('bron')}</button>
   </div>
   ${!brons.length?`<div style="text-align:center;color:var(--muted);padding:40px">${T('noBookings')}</div>`
@@ -1518,7 +1618,7 @@ function handleBronSearch(value) {
   searchBronTimeout = setTimeout(() => {
     searchBron = value;
     renderContent();
-  }, 300);
+  }, 500);
 }
 
 function renderNewBron(c) {
@@ -1539,9 +1639,14 @@ function renderNewBron(c) {
     <label class="lbl">${T('phone')}</label>
     <input class="inp phone-inp" style="margin-bottom:16px" id="bron-phone" value="${bronForm.phone}" placeholder="+7 ___ ___ __ __" oninput="handlePhoneInput(this)"/>
     
-    <div class="time-row">
-      <div class="time-item"><label class="lbl">${T('guests')}</label><input type="number" class="inp" id="bron-guests" value="${bronForm.guests}" min="1"/></div>
-      <div class="time-item"><label class="lbl">${T('time')}</label><input type="time" class="inp" id="bron-time" value="${bronForm.time}"/></div>
+    <div class="equal-row">
+      <div class="equal-item"><label class="lbl">${T('date')}</label><input type="date" class="inp" id="bron-date" value="${today}" min="${today}"/></div>
+      <div class="equal-item"><label class="lbl">${T('time')}</label><input type="time" class="inp" id="bron-time" value="${bronForm.time}" min="12:00" max="23:59"/></div>
+    </div>
+    
+    <div class="equal-row">
+      <div class="equal-item"><label class="lbl">${T('guests')}</label><input type="number" class="inp" id="bron-guests" value="${bronForm.guests}" min="1"/></div>
+      <div class="equal-item"><div style="visibility:hidden">placeholder</div></div>
     </div>
     
     <label class="lbl">${T('note')}</label>
@@ -1600,6 +1705,7 @@ function renderAnalytics() {
   }
 
   const total = analyticsData.reduce((s,p)=>s+p.total_final,0);
+  const avgCheck = total / analyticsData.length;
   const cash  = analyticsData.filter(p=>p.payment_method==='cash').reduce((s,p)=>s+p.total_final,0);
   const card  = analyticsData.filter(p=>p.payment_method==='card').reduce((s,p)=>s+p.total_final,0);
   
@@ -1610,25 +1716,39 @@ function renderAnalytics() {
   });
 
   el.innerHTML = `
-  <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
-    <div class="metric"><div class="metric-label">${T('revenue')}</div><div class="metric-val" style="font-size:20px;color:var(--gold)">${fmtRub(total)}</div></div>
-    <div class="metric"><div class="metric-label">${T('orders')}</div><div class="metric-val" style="font-size:20px">${analyticsData.length}</div></div>
-  </div>
-  <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-    <div class="metric"><div class="metric-label">💵 ${T('cash')}</div><div class="metric-val" style="font-size:16px">${fmtRub(cash)}</div></div>
-    <div class="metric"><div class="metric-label">💳 ${T('card')}</div><div class="metric-val" style="font-size:16px">${fmtRub(card)}</div></div>
-  </div>
   <div class="card">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">${T('salesByWaiter')}</div>
-    ${Object.entries(byWaiter).map(([name,sales])=>`
-    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div><div style="font-size:14px;font-weight:500">👤 ${name}</div><div style="font-size:12px;color:var(--muted)">${fmtRub(sales)}</div></div>
-      <div style="text-align:right"><div style="font-size:14px;font-weight:600;color:var(--green)">${fmtRub(sales*0.025)}</div><div style="font-size:11px;color:var(--muted)">2,5%</div></div>
-    </div>`).join('')}
+    <div style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--gold)">📊 ${T('totalRevenue')}</div>
+    <div style="font-size:28px;font-weight:700;color:var(--gold);margin-bottom:12px">${fmtRub(total)}</div>
+    <div style="display:flex;gap:12px">
+      <div class="metric"><div class="metric-label">${T('checksCount')}</div><div class="metric-val" style="font-size:18px">${analyticsData.length}</div></div>
+      <div class="metric"><div class="metric-label">${T('avgCheck')}</div><div class="metric-val" style="font-size:18px">${fmtRub(avgCheck)}</div></div>
+    </div>
   </div>
+  
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--gold)">💰 ${T('salesByWaiter')}</div>
+    <table class="stats-table">
+      <thead><tr><th>${lang==='ru'?'Официант':'Waiter'}</th><th>${T('revenue')}</th><th>${T('bonus')}</th></tr></thead>
+      <tbody>
+        ${Object.entries(byWaiter).map(([name,sales])=>`
+        <tr><td>👤 ${name}</td><td style="color:var(--gold);font-weight:600">${fmtRub(sales)}</td><td style="color:var(--green)">${fmtRub(sales*0.025)}</td></tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--gold)">💳 ${lang==='ru'?'По способам оплаты':'By payment method'}</div>
+    <div style="display:flex;gap:12px">
+      <div class="metric"><div class="metric-label">💵 ${T('cash')}</div><div class="metric-val" style="font-size:16px">${fmtRub(cash)}</div></div>
+      <div class="metric"><div class="metric-label">💳 ${T('card')}</div><div class="metric-val" style="font-size:16px">${fmtRub(card)}</div></div>
+    </div>
+  </div>
+  
   <div style="margin-bottom:16px">
-    <button class="btn btn-outline-gold btn-sm" onclick="exportCSV()" style="width:100%">↓ CSV</button>
+    <button class="btn btn-outline-gold" onclick="exportDetailedStats()" style="width:100%">📄 ${lang==='ru'?'Экспорт детального отчёта':'Export detailed report'}</button>
   </div>
+  
   <div class="card">
     <div style="font-size:12px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">${lang==='ru'?'Последние платежи':'Recent payments'}</div>
     ${analyticsData.slice(0,10).map(p=>`
@@ -1663,7 +1783,7 @@ function closeTableDetail(){ tableDetailId=null; renderContent(); }
 function setTableDetailTab(t){ tableDetailTab=t; renderContent(); }
 function setBronTab(t){ bronTab=t; renderContent(); }
 function setBronTableId(id){ bronTableId=id; renderContent(); }
-function startNewBron(id){ bronTableId=id; bronForm={name:'', phone:'', guests:'2', time:'19:00', note:''}; tab='bron'; bronTab='new'; renderMain(); }
+function startNewBron(id){ bronTableId=id; bronForm={name:'', phone:'', guests:'2', date:'', time:'19:00', note:''}; tab='bron'; bronTab='new'; renderMain(); }
 function doLogout(){ waiter=null; screen='login'; if(subTables) sb.removeChannel(subTables); render(); }
 
 function setAnalyticsPreset(p){
@@ -1731,16 +1851,32 @@ async function doConfirmPay(){
 async function doSaveBronFromForm(){
   const name = document.getElementById('bron-name')?.value;
   const phone = document.getElementById('bron-phone')?.value;
-  const guests = document.getElementById('bron-guests')?.value;
+  const date = document.getElementById('bron-date')?.value;
   const time = document.getElementById('bron-time')?.value;
+  const guests = document.getElementById('bron-guests')?.value;
   const note = document.getElementById('bron-note')?.value;
   
   if(!name){ toast(lang==='ru'?'⚠️ Введите имя гостя':'⚠️ Enter guest name'); return; }
   if(!bronTableId){ toast(lang==='ru'?'⚠️ Выберите стол':'⚠️ Select a table'); return; }
+  if(!date){ toast(lang==='ru'?'⚠️ Выберите дату':'⚠️ Select date'); return; }
+  if(!time){ toast(lang==='ru'?'⚠️ Выберите время':'⚠️ Select time'); return; }
+  
+  // Check working hours
+  if(!isWorkingHours(time)){
+    toast(lang==='ru'?'❌ Ресторан работает с 12:00 до 03:00':'❌ Restaurant works from 12:00 to 03:00');
+    return;
+  }
+  
+  // Check double booking
+  const isDouble = await checkDoubleBooking(bronTableId, date, time);
+  if(isDouble){
+    toast(lang==='ru'?'❌ На эту таблицу уже есть бронь на это время':'❌ This table is already booked for this time');
+    return;
+  }
   
   try {
-    await dbSaveBron(bronTableId, {name, phone, guests, time, note});
-    bronForm={name:'', phone:'', guests:'2', time:'19:00', note:''};
+    await dbSaveBron(bronTableId, {name, phone, date, time, guests, note});
+    bronForm={name:'', phone:'', guests:'2', date:'', time:'19:00', note:''};
     bronTableId=null; 
     bronTab='list';
     toast(lang==='ru'?'✅ Бронь сохранена':'✅ Booking saved');
@@ -1755,7 +1891,6 @@ async function doOpenTable(id){
   await dbOpenTable(id);
   toast(lang==='ru'?'✅ Стол открыт, можно принимать заказ':'✅ Table opened, you can take orders');
   tableDetailId=null;
-  // Auto redirect to add order
   addingTo = id;
   renderContent();
 }
