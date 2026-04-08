@@ -2,15 +2,13 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="theme-color" content="#0E0E0E"/>
 <title>Supernova Lounge Bar</title>
 <link rel="manifest" href="manifest.json"/>
-<!-- Favicon SVG inline -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%230a0a0a'/><text y='68' x='50' text-anchor='middle' font-size='60' font-family='Arial' font-weight='bold' fill='%23C9A84C'>S</text></svg>"/>
-<!-- Apple touch icon -->
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%230a0a0a'/><text y='68' x='50' text-anchor='middle' font-size='60' font-family='Arial' font-weight='bold' fill='%23C9A84C'>S</text></svg>"/>
 <meta name="apple-mobile-web-app-title" content="Supernova"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -74,8 +72,8 @@
   .badge-reserved{background:#2A0010;color:var(--pink)}
   .badge-free{background:#0A1A0A;color:var(--green)}
 
-  /* Login */
-  .login-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+  /* Login - non scrollable */
+  .login-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:20px;overflow:hidden}
   .pin-dots{display:flex;gap:14px;margin-bottom:36px}
   .pin-dot{width:13px;height:13px;border-radius:50%;background:var(--border);transition:background .15s}
   .pin-dot.filled{background:var(--gold)}
@@ -137,9 +135,10 @@
   .bron-counter-label{font-size:11px}
   .bron-counter-val{font-size:18px;font-weight:500}
 
-  /* Analytics export */
-  .date-range{display:flex;gap:10px;margin-bottom:14px}
-  .date-range .inp{font-size:13px;padding:8px 10px}
+  /* Analytics export - responsive */
+  .date-range{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .date-range .date-item{flex:1;min-width:120px}
+  .date-range .inp{font-size:13px;padding:8px 10px;width:100%}
 
   /* Date time row */
   .dt-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
@@ -152,8 +151,7 @@
   .restoflow{position:fixed;bottom:12px;left:0;right:0;text-align:center;font-size:10px;color:#444;letter-spacing:1px;pointer-events:none}
   .restoflow span{color:#C9A84C;font-weight:500}
 
-  /* 3D Floor plan */
-  #floor-svg{width:100%;max-width:390px;display:block;margin:0 auto}
+  /* Floor container */
   .floor-container{background:linear-gradient(160deg,#181818,#111);border-radius:16px;padding:8px;border:1px solid #2E2E2E}
 </style>
 </head>
@@ -171,40 +169,33 @@ const sb = createClient(
 
 // ── State ──
 let lang = 'ru';
-let screen = 'login'; // login | main
+let screen = 'login';
 let waiter = null;
 let tables = [];
 let tab = 'tables';
 let viewMode = 'schema';
 let selTable = null;
 let subTables = null;
-
-// Menu search
 let menuSearch = '';
 let menuCat = 'shisha';
 let addingTo = null;
-
-// Payment flow
 let расчётTable = null;
 let billTable = null;
 let payMethod = null;
 let cashGiven = '';
-
-// Bron
-let bronTab = 'list'; // list | new
+let bronTab = 'list';
 let bronTableId = null;
 let bronForm = {name:'',phone:'',guests:'2',time:'19:00',note:''};
 let searchBron = '';
-
-// Table detail
 let tableDetailId = null;
 let tableDetailTab = 'info';
-
-// Analytics
 let analyticsTab = 'today';
 let analyticsFrom = '';
 let analyticsTo = '';
 let analyticsData = null;
+
+// Helper: format rubles
+const fmtRub = n => Math.round(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ') + ' ₽';
 
 // ── Menu data ──
 const MENU = {
@@ -314,6 +305,7 @@ const T = k => lang === 'ru' ? ({
   from:'С', to:'По', applyDiscount:'Применить скидку?',
   discNote:'(не распространяется на кальяны)',
   open:'Открыть', late:'Ожидаем', openCount:'Открыто', newCount:'Новые',
+  noAnalytics:'Нет аналитики за выбранный период',
 }[k]||k) : ({
   tables:'Tables', bron:'Bookings', analytics:'Analytics',
   free:'Free', occupied:'Busy', reserved:'Reserved',
@@ -338,6 +330,7 @@ const T = k => lang === 'ru' ? ({
   from:'From', to:'To', applyDiscount:'Apply discount?',
   discNote:'(not applicable to hookahs)',
   open:'Open', late:'Late', openCount:'Open', newCount:'New',
+  noAnalytics:'No analytics for selected period',
 }[k]||k);
 
 const toast = (msg, dur=2500) => {
@@ -346,6 +339,7 @@ const toast = (msg, dur=2500) => {
 };
 
 const tableTotal = (t, withDisc=false) => {
+  if(!t.orders) return 0;
   const raw = (t.orders||[]).reduce((s,o)=>s+o.price*o.qty,0);
   if(!withDisc||!t.discount) return raw;
   const disc = (t.orders||[]).filter(o=>!NO_DISC.includes(o.category)).reduce((s,o)=>s+o.price*o.qty,0);
@@ -359,7 +353,6 @@ const statusBadge = s => `<span class="badge badge-${s}">${T(s==='occupied'?'occ
 async function loadTables() {
   const {data} = await sb.from('tables').select('*, orders(*)').order('id');
   if(data) {
-    // Attach brons
     const {data:brons} = await sb.from('brons').select('*').eq('status','active');
     tables = data.map(t => ({
       ...t,
@@ -462,7 +455,10 @@ async function loadAnalytics(from, to) {
 }
 
 function exportCSV() {
-  if(!analyticsData) return;
+  if(!analyticsData || analyticsData.length===0) {
+    toast(lang==='ru'?'Нет данных для экспорта':'No data to export');
+    return;
+  }
   const rows = [['Date','Table','Waiter','Total','Discount','Method']];
   analyticsData.forEach(p => {
     rows.push([
@@ -485,6 +481,7 @@ function render() {
 }
 
 function renderLogin() {
+  document.body.style.overflow = 'hidden';
   $('app').innerHTML = `
   <div class="login-wrap">
     <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:32px">
@@ -528,7 +525,7 @@ function updateDots(err=false) {
 }
 async function doLogin() {
   const ok = await tryLogin(_pinVal);
-  if(ok){ screen='main'; await loadTables(); subscribeRealtime(); }
+  if(ok){ screen='main'; document.body.style.overflow = 'auto'; await loadTables(); subscribeRealtime(); }
   else { updateDots(true); setTimeout(()=>{ _pinVal=''; updateDots(); },700); }
 }
 
@@ -590,48 +587,46 @@ function renderTables(c) {
 }
 
 function renderFloorPlan() {
-  // Landscape layout: all visible at once, no scroll
-  // Tables horizontal (wide), sofas on top/bottom (length side)
-  const W=364, H=340;
-
-  // sofa along top or bottom of a horizontal table
-  const sofa=(x,y,w,h,col)=>{
+  const W=364, H=380;
+  
+  const sofaVertical=(x,y,w,h,col)=>{
+    const ch=Math.floor(h/3);
+    const cushions=[1,2].map(i=>`<line x1="${x+2}" y1="${y+ch*i}" x2="${x+w-2}" y2="${y+ch*i}" stroke="${col}" stroke-width="1" opacity="0.5"/>`).join('');
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="0.8" stroke-opacity="0.5"/>${cushions}`;
+  };
+  const sofaHorizontal=(x,y,w,h,col)=>{
     const cw=Math.floor(w/3);
     const cushions=[1,2].map(i=>`<line x1="${x+cw*i}" y1="${y+2}" x2="${x+cw*i}" y2="${y+h-2}" stroke="${col}" stroke-width="1" opacity="0.5"/>`).join('');
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="0.8" stroke-opacity="0.5"/>${cushions}`;
   };
-  // armchair (for table 6 round)
   const chair=(x,y,w,h,col)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${col}" fill-opacity="0.18" stroke="${col}" stroke-width="0.8" stroke-opacity="0.6"/>`;
 
-  // Table configs — horizontal layout
-  // Left column: 7,6,5,4 (top to bottom)
-  // Right column: 1,2,3
-  const TW=82, TH=32, SF=8; // table width, height, sofa thickness
+  const TW=78, TH=30, SF=8;
   const lx=18, rx=210;
 
   const tcs=[
-    {id:7, x:lx, y:28,  w:TW, h:TH, shape:'rect'},
-    {id:6, x:lx+18, y:88, w:36, h:36, shape:'round'},
-    {id:5, x:lx, y:152, w:TW, h:TH, shape:'rect'},
-    {id:4, x:lx, y:218, w:TW, h:TH, shape:'rect'},
-    {id:1, x:rx, y:52,  w:TW+22, h:TH, shape:'rect'},
-    {id:2, x:rx, y:132, w:TW+22, h:TH, shape:'rect'},
-    {id:3, x:rx, y:212, w:TW+22, h:TH, shape:'rounded'},
+    {id:7, x:lx+20, y:32,  w:36, h:70, shape:'vertical'},  // Table 7 vertical
+    {id:6, x:lx+18, y:130, w:36, h:36, shape:'round'},
+    {id:5, x:lx, y:200, w:TW, h:TH, shape:'rect'},
+    {id:4, x:lx, y:270, w:TW, h:TH, shape:'rect'},
+    {id:1, x:rx, y:60,  w:TW+22, h:TH, shape:'rect'},
+    {id:2, x:rx, y:150, w:TW+22, h:TH, shape:'rect'},
+    {id:3, x:rx, y:240, w:TW+22, h:TH, shape:'rounded'},
   ];
 
   const shapes=tcs.map(tc=>{
     const t=tables.find(t=>t.id===tc.id)||{status:'free',orders:[],discount:0};
     const col=statusColor(t.status);
-    const sw=2;
     const tot=t.status==='occupied'?tableTotal(t,true):0;
 
     let sofasSVG='';
     if(tc.shape==='round'){
-      // table 6: 2 armchairs left and right
       sofasSVG=chair(tc.x-12,tc.y+8,10,20,col)+chair(tc.x+tc.w+2,tc.y+8,10,20,col);
+    } else if(tc.shape==='vertical'){
+      // Sofas on left and right sides (vertical orientation)
+      sofasSVG=sofaVertical(tc.x-SF-1,tc.y,SF,tc.h,col)+sofaVertical(tc.x+tc.w+1,tc.y,SF,tc.h,col);
     } else {
-      // sofas along top and bottom (horizontal length)
-      sofasSVG=sofa(tc.x,tc.y-SF-1,tc.w,SF,col)+sofa(tc.x,tc.y+tc.h+1,tc.w,SF,col);
+      sofasSVG=sofaHorizontal(tc.x,tc.y-SF-1,tc.w,SF,col)+sofaHorizontal(tc.x,tc.y+tc.h+1,tc.w,SF,col);
     }
 
     const shadow=tc.shape==='round'
@@ -639,11 +634,15 @@ function renderFloorPlan() {
       :`<rect x="${tc.x+3}" y="${tc.y+3}" width="${tc.w}" height="${tc.h}" rx="${tc.shape==='rounded'?8:5}" fill="#000" opacity="0.25"/>`;
 
     const tableShape=tc.shape==='round'
-      ?`<circle cx="${tc.x+tc.w/2}" cy="${tc.y+tc.h/2}" r="${tc.w/2}" fill="#1e1e1e" stroke="${col}" stroke-width="${sw}"/>`
-      :`<rect x="${tc.x}" y="${tc.y}" width="${tc.w}" height="${tc.h}" rx="${tc.shape==='rounded'?8:5}" fill="#1e1e1e" stroke="${col}" stroke-width="${sw}"/>`;
+      ?`<circle cx="${tc.x+tc.w/2}" cy="${tc.y+tc.h/2}" r="${tc.w/2}" fill="#1e1e1e" stroke="${col}" stroke-width="2"/>`
+      :tc.shape==='vertical'
+      ?`<rect x="${tc.x}" y="${tc.y}" width="${tc.w}" height="${tc.h}" rx="5" fill="#1e1e1e" stroke="${col}" stroke-width="2"/>`
+      :`<rect x="${tc.x}" y="${tc.y}" width="${tc.w}" height="${tc.h}" rx="${tc.shape==='rounded'?8:5}" fill="#1e1e1e" stroke="${col}" stroke-width="2"/>`;
 
     const cx=tc.x+tc.w/2, cy=tc.y+tc.h/2;
-    const label=`<text x="${cx}" y="${cy+(t.status==='free'?4:-3)}" text-anchor="middle" font-size="13" font-weight="700" fill="${col}" font-family="-apple-system,sans-serif">${tc.id}</text>`;
+    let labelY=cy+(t.status==='free'?4:-3);
+    if(tc.shape==='vertical') labelY=cy;
+    const label=`<text x="${cx}" y="${labelY}" text-anchor="middle" font-size="13" font-weight="700" fill="${col}" font-family="-apple-system,sans-serif">${tc.id}</text>`;
     const sub=t.status==='occupied'
       ?`<text x="${cx}" y="${cy+11}" text-anchor="middle" font-size="8" fill="${col}">${tot} ₽</text>`
       :t.status==='reserved'
@@ -655,14 +654,9 @@ function renderFloorPlan() {
   return `<div class="floor-container" style="overflow:hidden">
   <svg id="floor-svg" viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:auto">
     <rect x="1" y="1" width="${W-2}" height="${H-2}" rx="12" fill="#111" stroke="#2e2e2e" stroke-width="1.5"/>
-    <!-- ВХОД top right -->
     <rect x="230" y="1" width="80" height="11" rx="3" fill="#242424"/>
     <text x="270" y="9.5" text-anchor="middle" font-size="7.5" fill="#666" letter-spacing="1">ВХОД</text>
-    <!-- Wall divider -->
     <line x1="175" y1="14" x2="175" y2="${H-30}" stroke="#2e2e2e" stroke-width="1" stroke-dasharray="5,4"/>
-    <!-- Floor subtle texture -->
-    <line x1="1" y1="${H*0.45}" x2="${W-1}" y2="${H*0.45}" stroke="#1a1a1a" stroke-width="0.5"/>
-    <!-- BAR bottom -->
     <rect x="60" y="${H-28}" width="244" height="22" rx="5" fill="#1e1e1e" stroke="#3a3a3a" stroke-width="1"/>
     <text x="182" y="${H-14}" text-anchor="middle" font-size="8.5" fill="#666" letter-spacing="2">БАР</text>
     ${shapes}
@@ -718,7 +712,7 @@ function renderAddOrder(c) {
   </div>
   <div style="position:relative;margin-bottom:12px">
     <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%)">🔍</span>
-    <input class="inp" style="padding-left:36px" placeholder="${T('searchMenu')}" value="${menuSearch}" oninput="setMenuSearch(this.value)"/>
+    <input class="inp" style="padding-left:36px" placeholder="${T('searchMenu')}" value="${menuSearch}" oninput="setMenuSearch(this.value)" inputmode="search"/>
   </div>
   ${!menuSearch?`<div class="cat-scroll">${MENU_CATS.map(c=>`<button class="cat-btn ${menuCat===c.k?'active':''}" onclick="setMenuCat('${c.k}')">${c[lang]}</button>`).join('')}</div>`:''}
   ${items.map(item=>`
@@ -791,7 +785,6 @@ function renderBill(c) {
   const t=tables.find(t=>t.id===billTable); if(!t) return;
   const raw=tableTotal(t,false), disc=tableTotal(t,true);
   const given=parseFloat(cashGiven)||0, change=given-disc;
-  const srv=t.waiter_id;
   c.innerHTML = `
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
     <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="backToBill()">← ${T('back')}</button>
@@ -811,7 +804,7 @@ function renderBill(c) {
     <div class="receipt-total"><span>ИТОГО</span><span>${disc} ₽</span></div>
     <div style="font-size:10px;color:#999;text-align:center;margin-top:10px">Спасибо за визит!</div>
   </div>
-  <div style="font-size:13px;color:var(--muted);margin-bottom:10px;text-align:center">${T('payMethod')||lang==='ru'?'Способ оплаты':'Payment method'}</div>
+  <div style="font-size:13px;color:var(--muted);margin-bottom:10px;text-align:center">${lang==='ru'?'Способ оплаты':'Payment method'}</div>
   <div style="display:flex;gap:10px;margin-bottom:14px">
     <button class="pay-btn ${payMethod==='cash'?'active':''}" onclick="setPayMethod('cash')">💵 ${T('cash')}</button>
     <button class="pay-btn ${payMethod==='card'?'active':''}" onclick="setPayMethod('card')">💳 ${T('card')}</button>
@@ -881,7 +874,7 @@ function renderBron(c) {
 
   c.innerHTML = `
   <div style="display:flex;gap:8px;margin-bottom:14px">
-    <div class="search-wrap"><span class="search-icon">🔍</span><input class="inp" placeholder="${lang==='ru'?'Имя или телефон':'Name or phone'}" value="${searchBron}" oninput="setSearchBron(this.value)"/></div>
+    <div class="search-wrap"><span class="search-icon">🔍</span><input class="inp" placeholder="${lang==='ru'?'Имя или телефон':'Name or phone'}" value="${searchBron}" oninput="setSearchBron(this.value)" inputmode="search"/></div>
     <button class="btn btn-pink" style="width:auto;padding:0 14px;white-space:nowrap;margin-bottom:0" onclick="setBronTab('new')">+ ${T('bron')}</button>
   </div>
   ${!brons.length?`<div style="text-align:center;color:var(--muted);padding:40px">${T('noBookings')}</div>`
@@ -918,17 +911,16 @@ function renderNewBron(c) {
     </div>
   </div>
   <label class="lbl">${T('guestName')}</label>
-  <input class="inp" style="margin-bottom:14px" value="${bronForm.name}" oninput="bronForm.name=this.value" placeholder="${lang==='ru'?'Иван Петров':'John Smith'}"/>
+  <input class="inp" style="margin-bottom:14px" id="bron-name" value="${bronForm.name}" placeholder="${lang==='ru'?'Иван Петров':'John Smith'}"/>
   <label class="lbl">${T('phone')}</label>
-  <input class="inp phone-inp" style="margin-bottom:14px" id="phone-inp" value="${bronForm.phone}" oninput="formatPhone(this)" placeholder="+7 xxx xxx xx xx"/>
+  <input class="inp phone-inp" style="margin-bottom:14px" id="bron-phone" value="${bronForm.phone}" placeholder="+7 xxx xxx xx xx"/>
   <div class="dt-row">
-    <div><label class="lbl">${T('guests')}</label><input type="number" class="inp" value="${bronForm.guests}" oninput="bronForm.guests=this.value" min="1"/></div>
-    <div><label class="lbl">${lang==='ru'?'Дата':'Date'}</label><input type="date" class="inp" value="${bronForm.date||new Date().toISOString().split('T')[0]}" oninput="bronForm.date=this.value"/></div>
+    <div><label class="lbl">${T('guests')}</label><input type="number" class="inp" id="bron-guests" value="${bronForm.guests}" min="1"/></div>
+    <div><label class="lbl">${lang==='ru'?'Время':'Time'}</label><input type="time" class="inp" id="bron-time" value="${bronForm.time}"/></div>
   </div>
-  <div style="margin-bottom:14px"><label class="lbl">${T('arrival')}</label><input type="time" class="inp" value="${bronForm.time}" oninput="bronForm.time=this.value" style="width:50%"/></div>
   <label class="lbl">${T('note')}</label>
-  <input class="inp" style="margin-bottom:14px" value="${bronForm.note}" oninput="bronForm.note=this.value" placeholder="${lang==='ru'?'День рождения, особые пожелания...':'Special requests...'}"/>
-  <button class="btn btn-pink" ${!bronForm.name||!bronTableId?'disabled style="opacity:0.4"':''} onclick="doSaveBron()">${T('save')} →</button>`;
+  <input class="inp" style="margin-bottom:14px" id="bron-note" value="${bronForm.note}" placeholder="${lang==='ru'?'День рождения, особые пожелания...':'Special requests...'}"/>
+  <button class="btn btn-pink" onclick="doSaveBronFromForm()">${T('save')} →</button>`;
 }
 
 // ── ANALYTICS ──
@@ -955,28 +947,37 @@ function renderAnalyticsTab(c) {
       ${['today','week','month','year'].map(p=>`<button class="toggle-btn ${analyticsTab===p?'active':''}" onclick="setAnalyticsPreset('${p}')">${T(p)}</button>`).join('')}
     </div>
     <div class="date-range">
-      <div style="flex:1"><label class="lbl">${T('from')}</label><input type="date" class="inp" value="${analyticsFrom}" onchange="analyticsFrom=this.value"/></div>
-      <div style="flex:1"><label class="lbl">${T('to')}</label><input type="date" class="inp" value="${analyticsTo}" onchange="analyticsTo=this.value"/></div>
+      <div class="date-item"><label class="lbl">${T('from')}</label><input type="date" class="inp" id="analytics-from" value="${analyticsFrom}"/></div>
+      <div class="date-item"><label class="lbl">${T('to')}</label><input type="date" class="inp" id="analytics-to" value="${analyticsTo}"/></div>
     </div>
-    <button class="btn btn-gold" onclick="doLoadAnalytics()">${lang==='ru'?'Показать':'Show'}</button>
+    <button class="btn btn-gold" onclick="doLoadAnalyticsFromDates()">${lang==='ru'?'Показать':'Show'}</button>
   </div>
   <div id="analytics-results"><div class="loader">${lang==='ru'?'Выберите период и нажмите Показать':'Select period and click Show'}</div></div>`;
 }
 
 function renderAnalytics() {
   const el = $('analytics-results'); if(!el) return;
-  if(!analyticsData){ el.innerHTML=`<div class="loader">${lang==='ru'?'Нет данных':'No data'}</div>`; return; }
+  if(!analyticsData || analyticsData.length===0){ 
+    el.innerHTML=`<div class="loader">${T('noAnalytics')}</div>`; 
+    return; 
+  }
 
   const total = analyticsData.reduce((s,p)=>s+p.total_final,0);
   const cash  = analyticsData.filter(p=>p.payment_method==='cash').reduce((s,p)=>s+p.total_final,0);
   const card  = analyticsData.filter(p=>p.payment_method==='card').reduce((s,p)=>s+p.total_final,0);
+  
+  const byWaiter = {};
+  analyticsData.forEach(p => {
+    const name = p.waiters?.name || 'Unknown';
+    byWaiter[name] = (byWaiter[name] || 0) + p.total_final;
+  });
 
   el.innerHTML = `
-  <div style="display:flex;gap:10px;margin-bottom:10px">
+  <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
     <div class="metric"><div class="metric-label">${T('revenue')}</div><div class="metric-val" style="font-size:18px;color:var(--gold)">${fmtRub(total)}</div></div>
     <div class="metric"><div class="metric-label">${T('orders')}</div><div class="metric-val">${analyticsData.length}</div></div>
   </div>
-  <div style="display:flex;gap:10px;margin-bottom:14px">
+  <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
     <div class="metric"><div class="metric-label">💵 ${T('cash')}</div><div class="metric-val" style="font-size:15px">${fmtRub(cash)}</div></div>
     <div class="metric"><div class="metric-label">💳 ${T('card')}</div><div class="metric-val" style="font-size:15px">${fmtRub(card)}</div></div>
   </div>
@@ -988,8 +989,8 @@ function renderAnalytics() {
       <div style="text-align:right"><div style="font-size:14px;color:var(--green)">${fmtRub(sales*0.025)}</div><div style="font-size:11px;color:var(--muted)">2,5%</div></div>
     </div>`).join('')}
   </div>
-  <div style="display:flex;gap:10px;margin-bottom:14px">
-    <button class="btn btn-outline-gold btn-sm" onclick="exportCSV()" style="flex:1">↓ CSV</button>
+  <div style="margin-bottom:14px">
+    <button class="btn btn-outline-gold btn-sm" onclick="exportCSV()" style="width:100%">↓ CSV</button>
   </div>
   <div class="card">
     <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${lang==='ru'?'Последние платежи':'Recent payments'}</div>
@@ -1010,11 +1011,7 @@ function renderAnalytics() {
 // ── Action handlers ──
 function setTab(t){ tab=t; selTable=null; addingTo=null; расчётTable=null; billTable=null; tableDetailId=null; if(t==='bron') bronTab='list'; renderMain(); }
 function setViewMode(m){ viewMode=m; selTable=null; renderContent(); }
-// Click on floor plan table → show popup (not detail directly)
-function selTableClick(id){
-  selTable = selTable===id ? null : id;
-  renderContent();
-}
+function selTableClick(id){ selTable = selTable===id ? null : id; renderContent(); }
 function startAddOrder(id){ addingTo=id; menuSearch=''; renderContent(); }
 function setAddingTo(v){ addingTo=v; renderContent(); }
 function setMenuSearch(v){ menuSearch=v; renderContent(); }
@@ -1043,6 +1040,21 @@ function setAnalyticsPreset(p){
   else if(p==='month'){ const d=new Date(today); d.setMonth(d.getMonth()-1); analyticsFrom=fmt(d); analyticsTo=fmt(today); }
   else if(p==='year'){ const d=new Date(today); d.setFullYear(d.getFullYear()-1); analyticsFrom=fmt(d); analyticsTo=fmt(today); }
   renderContent();
+  doLoadAnalytics(analyticsFrom, analyticsTo);
+}
+
+async function doLoadAnalyticsFromDates(){
+  const from = document.getElementById('analytics-from')?.value;
+  const to = document.getElementById('analytics-to')?.value;
+  if(from) analyticsFrom = from;
+  if(to) analyticsTo = to;
+  await doLoadAnalytics(analyticsFrom, analyticsTo);
+}
+
+async function doLoadAnalytics(from, to){
+  const el=$('analytics-results');
+  if(el) el.innerHTML=`<div class="loader">${lang==='ru'?'Загрузка...':'Loading...'}</div>`;
+  await loadAnalytics(from, to);
 }
 
 async function doAddOrder(id,ru,en,price,cat){
@@ -1074,17 +1086,22 @@ async function doConfirmPay(){
   renderMain();
 }
 
-async function doSaveBron(){
-  if(!bronForm.name){ toast(lang==='ru'?'⚠️ Введите имя гостя':'⚠️ Enter guest name'); return; }
+async function doSaveBronFromForm(){
+  const name = document.getElementById('bron-name')?.value;
+  const phone = document.getElementById('bron-phone')?.value;
+  const guests = document.getElementById('bron-guests')?.value;
+  const time = document.getElementById('bron-time')?.value;
+  const note = document.getElementById('bron-note')?.value;
+  if(!name){ toast(lang==='ru'?'⚠️ Введите имя гостя':'⚠️ Enter guest name'); return; }
   if(!bronTableId){ toast(lang==='ru'?'⚠️ Выберите стол':'⚠️ Select a table'); return; }
   try {
-    await dbSaveBron(bronTableId, bronForm);
-    bronForm={name:'',phone:'',guests:'2',time:'19:00',note:'',date:''};
+    await dbSaveBron(bronTableId, {name, phone, guests, time, note});
+    bronForm={name:'',phone:'',guests:'2',time:'19:00',note:''};
     bronTableId=null; bronTab='list';
     toast(lang==='ru'?'✅ Бронь сохранена':'✅ Booking saved');
     tab='bron'; renderMain();
   } catch(e){
-    toast('❌ Ошибка: '+e.message);
+    toast('❌ Error: '+e.message);
   }
 }
 
@@ -1100,29 +1117,7 @@ async function doCancelBron(bronId,tableId){
   renderContent();
 }
 
-async function doLoadAnalytics(){
-  const el=$('analytics-results');
-  if(el) el.innerHTML=`<div class="loader">${lang==='ru'?'Загрузка...':'Loading...'}</div>`;
-  await loadAnalytics(analyticsFrom,analyticsTo);
-}
-
-// Number format Russian style: space as thousands separator
-const fmtRub = n => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ') + ' ₽';
-function formatPhone(input) {
-  let v = input.value.replace(/\D/g,'');
-  if(v.startsWith('8')) v='7'+v.slice(1);
-  if(!v.startsWith('7')) v='7'+v;
-  v=v.slice(0,11);
-  let f='+7';
-  if(v.length>1) f+=' '+v.slice(1,4);
-  if(v.length>4) f+=' '+v.slice(4,7);
-  if(v.length>7) f+=' '+v.slice(7,9);
-  if(v.length>9) f+=' '+v.slice(9,11);
-  input.value=f;
-  bronForm.phone=f;
-}
-
-// Phone formatter — Russian format +7 xxx xxx xx xx
+// Initialize
 render();
 </script>
 </body>
