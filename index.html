@@ -13,146 +13,719 @@
 <meta name="apple-mobile-web-app-title" content="Supernova"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  body{background:#0E0E0E;color:#F5F0E8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:430px;margin:0 auto;min-height:100vh}
-  :root{
-    --gold:#C9A84C;--dark:#0E0E0E;--surface:#1A1A1A;--surface2:#242424;
-    --border:#2E2E2E;--text:#F5F0E8;--muted:#888;--green:#2ECC71;
-    --red:#E74C3C;--pink:#C0395A;
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
   }
-  input,button{font-family:inherit;outline:none}
-  button{cursor:pointer}
-
-  /* Header */
-  .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-  .logo-wrap{display:flex;align-items:center;gap:8px}
-  .logo-text{font-size:12px;font-weight:700;color:var(--gold);letter-spacing:1px}
-  .logo-sub{font-size:9px;color:var(--muted)}
-  .hdr-right{display:flex;gap:6px;align-items:center}
-  .waiter-badge{font-size:11px;color:var(--muted)}
-  .lang-btn,.icon-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:12px}
-  .icon-btn{color:var(--red)}
-
+  
+  body {
+    background: #0E0E0E;
+    color: #F5F0E8;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  :root {
+    --gold: #C9A84C;
+    --dark: #0E0E0E;
+    --surface: #1A1A1A;
+    --surface2: #242424;
+    --border: #2E2E2E;
+    --text: #F5F0E8;
+    --muted: #888;
+    --green: #2ECC71;
+    --red: #E74C3C;
+    --pink: #C0395A;
+    --shadow: 0 4px 12px rgba(0,0,0,0.3);
+    --transition: all 0.2s ease;
+  }
+  
+  input, button {
+    font-family: inherit;
+    outline: none;
+  }
+  
+  button {
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  
+  button:active {
+    transform: scale(0.97);
+  }
+  
+  /* Header avec safe area */
+  .hdr {
+    background: rgba(26, 26, 26, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+  
+  .logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .logo-text {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+  
+  .logo-sub {
+    font-size: 9px;
+    color: var(--muted);
+  }
+  
+  .hdr-right {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  
+  .waiter-badge {
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 4px 8px;
+    border-radius: 20px;
+  }
+  
+  .lang-btn, .icon-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 12px;
+    transition: var(--transition);
+  }
+  
+  .lang-btn:active, .icon-btn:active {
+    background: var(--surface2);
+    transform: scale(0.95);
+  }
+  
+  .icon-btn {
+    color: var(--red);
+  }
+  
   /* Nav */
-  .nav{display:flex;background:var(--surface);border-top:1px solid var(--border);position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:100}
-  .nav-btn{flex:1;padding:10px 4px;background:none;border:none;color:var(--muted);font-size:11px;border-top:2px solid transparent;transition:color .2s}
-  .nav-btn.active{color:var(--gold);border-top-color:var(--gold)}
-  .nav-btn .nav-icon{font-size:20px;display:block}
-
+  .nav {
+    display: flex;
+    background: rgba(26, 26, 26, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .nav-btn {
+    flex: 1;
+    padding: 10px 4px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 11px;
+    border-top: 2px solid transparent;
+    transition: var(--transition);
+  }
+  
+  .nav-btn.active {
+    color: var(--gold);
+    border-top-color: var(--gold);
+  }
+  
+  .nav-btn .nav-icon {
+    font-size: 20px;
+    display: block;
+    margin-bottom: 2px;
+  }
+  
   /* Content */
-  .content{padding:14px;padding-bottom:80px}
-
+  .content {
+    padding: 14px;
+    padding-bottom: 80px;
+  }
+  
   /* Cards */
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
-
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: var(--transition);
+    box-shadow: var(--shadow);
+  }
+  
   /* Buttons */
-  .btn{border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:500;width:100%;display:block;text-align:center;margin-bottom:8px}
-  .btn-gold{background:var(--gold);color:#000}
-  .btn-pink{background:var(--pink);color:#fff}
-  .btn-green{background:var(--green);color:#fff}
-  .btn-outline{background:none;border:1px solid var(--border);color:var(--text)}
-  .btn-outline-red{background:none;border:1px solid var(--red);color:var(--red)}
-  .btn-outline-gold{background:none;border:1px solid var(--gold);color:var(--gold);background:var(--surface2)}
-  .btn-sm{padding:6px 10px;font-size:12px;border-radius:7px;width:auto;flex:1}
-
-  /* Input */
-  .inp{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:15px;color:var(--text);width:100%}
-  .inp:focus{border-color:var(--gold)}
-  .lbl{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
-
+  .btn {
+    border: none;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    width: 100%;
+    display: block;
+    text-align: center;
+    margin-bottom: 8px;
+    transition: var(--transition);
+  }
+  
+  .btn:active {
+    transform: scale(0.98);
+  }
+  
+  .btn-gold {
+    background: var(--gold);
+    color: #000;
+  }
+  
+  .btn-pink {
+    background: var(--pink);
+    color: #fff;
+  }
+  
+  .btn-green {
+    background: var(--green);
+    color: #fff;
+  }
+  
+  .btn-outline {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  
+  .btn-outline-red {
+    background: none;
+    border: 1px solid var(--red);
+    color: var(--red);
+  }
+  
+  .btn-outline-gold {
+    background: none;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    background: var(--surface2);
+  }
+  
+  .btn-sm {
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 10px;
+    width: auto;
+    flex: 1;
+  }
+  
+  /* Inputs */
+  .inp {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 15px;
+    color: var(--text);
+    width: 100%;
+    transition: var(--transition);
+  }
+  
+  .inp:focus {
+    border-color: var(--gold);
+    outline: none;
+  }
+  
+  .lbl {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: block;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+  
   /* Toggle */
-  .toggle{display:flex;gap:8px;margin-bottom:14px}
-  .toggle-btn{flex:1;padding:8px;border-radius:8px;border:none;font-size:13px;cursor:pointer}
-  .toggle-btn.active{background:var(--gold);color:#000}
-  .toggle-btn:not(.active){background:var(--surface2);color:var(--muted)}
-
+  .toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  
+  .toggle-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 12px;
+    border: none;
+    font-size: 13px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 500;
+  }
+  
+  .toggle-btn.active {
+    background: var(--gold);
+    color: #000;
+  }
+  
+  .toggle-btn:not(.active) {
+    background: var(--surface2);
+    color: var(--muted);
+  }
+  
   /* Status badge */
-  .badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
-  .badge-occupied{background:#2A2000;color:var(--gold)}
-  .badge-reserved{background:#2A0010;color:var(--pink)}
-  .badge-free{background:#0A1A0A;color:var(--green)}
-
-  /* Login - non scrollable */
-  .login-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:20px;overflow:hidden}
-  .pin-dots{display:flex;gap:14px;margin-bottom:36px}
-  .pin-dot{width:13px;height:13px;border-radius:50%;background:var(--border);transition:background .15s}
-  .pin-dot.filled{background:var(--gold)}
-  .pin-dot.error{background:var(--red)}
-  .pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:260px}
-  .pin-btn{background:rgba(255,255,255,0.08);border:none;border-radius:50%;width:72px;height:72px;font-size:24px;font-weight:500;color:var(--text);margin:0 auto;display:flex;align-items:center;justify-content:center}
-  .pin-btn:active{background:rgba(255,255,255,0.16)}
-  .pin-btn.del{background:none;font-size:22px;color:var(--muted)}
-
+  .badge {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  
+  .badge-occupied {
+    background: #2A2000;
+    color: var(--gold);
+  }
+  
+  .badge-reserved {
+    background: #2A0010;
+    color: var(--pink);
+  }
+  
+  .badge-free {
+    background: #0A1A0A;
+    color: var(--green);
+  }
+  
+  /* Login */
+  .login-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    padding: 20px;
+    overflow: hidden;
+  }
+  
+  .pin-dots {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+  
+  .pin-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: var(--transition);
+  }
+  
+  .pin-dot.filled {
+    background: var(--gold);
+  }
+  
+  .pin-dot.error {
+    background: var(--red);
+  }
+  
+  .pin-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    width: 260px;
+  }
+  
+  .pin-btn {
+    background: rgba(255,255,255,0.08);
+    border: none;
+    border-radius: 50%;
+    width: 72px;
+    height: 72px;
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+  }
+  
+  .pin-btn:active {
+    background: rgba(255,255,255,0.16);
+    transform: scale(0.95);
+  }
+  
+  .pin-btn.del {
+    background: none;
+    font-size: 22px;
+    color: var(--muted);
+  }
+  
   /* Floor plan */
-  #floor-svg{width:100%;max-width:360px;display:block;margin:0 auto}
-
+  #floor-svg {
+    width: 100%;
+    max-width: 360px;
+    display: block;
+    margin: 0 auto;
+  }
+  
+  .floor-container {
+    background: linear-gradient(160deg, #181818, #111);
+    border-radius: 20px;
+    padding: 12px;
+    border: 1px solid #2E2E2E;
+    box-shadow: var(--shadow);
+  }
+  
   /* Metric */
-  .metric{background:var(--surface2);border-radius:10px;padding:12px 14px;flex:1;text-align:center}
-  .metric-label{font-size:11px;color:var(--muted);margin-bottom:4px}
-  .metric-val{font-size:22px;font-weight:500}
-
+  .metric {
+    background: var(--surface2);
+    border-radius: 14px;
+    padding: 14px;
+    flex: 1;
+    text-align: center;
+    transition: var(--transition);
+  }
+  
+  .metric-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .metric-val {
+    font-size: 24px;
+    font-weight: 700;
+  }
+  
   /* Search */
-  .search-wrap{position:relative;flex:1}
-  .search-wrap .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px}
-  .search-wrap .inp{padding-left:36px}
-
+  .search-wrap {
+    position: relative;
+    flex: 1;
+  }
+  
+  .search-wrap .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: var(--muted);
+  }
+  
+  .search-wrap .inp {
+    padding-left: 42px;
+  }
+  
   /* Toast */
-  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
-  .toast.show{opacity:1}
-
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(51, 51, 51, 0.95);
+    backdrop-filter: blur(10px);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 13px;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  
+  .toast.show {
+    opacity: 1;
+  }
+  
   /* Loader */
-  .loader{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--muted);font-size:14px}
-
+  .loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  
   /* Discount buttons */
-  .disc-btn{padding:8px 16px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);color:var(--muted);font-size:15px;font-weight:500;cursor:pointer}
-  .disc-btn.active{border-color:var(--gold);background:#1A1500;color:var(--gold)}
-
+  .disc-btn {
+    padding: 10px 18px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  
+  .disc-btn.active {
+    border-color: var(--gold);
+    background: #1A1500;
+    color: var(--gold);
+  }
+  
+  .disc-btn:active {
+    transform: scale(0.95);
+  }
+  
   /* Receipt */
-  .receipt{background:#fff;color:#000;border-radius:12px;padding:20px;font-family:monospace;max-width:320px;margin:0 auto 18px}
-  .receipt-title{font-size:18px;font-weight:700;text-align:center}
-  .receipt-sub{font-size:10px;color:#555;letter-spacing:2px;text-align:center}
-  .receipt-divider{border-top:1px dashed #ccc;margin:10px 0}
-  .receipt-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
-  .receipt-total{display:flex;justify-content:space-between;font-weight:700;font-size:16px;margin-top:4px}
-
+  .receipt {
+    background: #fff;
+    color: #000;
+    border-radius: 16px;
+    padding: 20px;
+    font-family: monospace;
+    max-width: 320px;
+    margin: 0 auto 18px;
+    box-shadow: var(--shadow);
+  }
+  
+  .receipt-title {
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+  }
+  
+  .receipt-sub {
+    font-size: 10px;
+    color: #555;
+    letter-spacing: 2px;
+    text-align: center;
+  }
+  
+  .receipt-divider {
+    border-top: 1px dashed #ccc;
+    margin: 10px 0;
+  }
+  
+  .receipt-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 3px;
+  }
+  
+  .receipt-total {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 16px;
+    margin-top: 4px;
+  }
+  
   /* Pay method */
-  .pay-btn{flex:1;padding:12px;border-radius:10px;border:2px solid var(--border);background:var(--surface);color:var(--muted);font-size:14px;cursor:pointer}
-  .pay-btn.active{border-color:var(--gold);background:#1A1500;color:var(--gold)}
-
+  .pay-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 14px;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 14px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 600;
+  }
+  
+  .pay-btn.active {
+    border-color: var(--gold);
+    background: #1A1500;
+    color: var(--gold);
+  }
+  
+  .pay-btn:active {
+    transform: scale(0.97);
+  }
+  
   /* Change display */
-  .change-box{display:flex;justify-content:space-between;background:#0A1A0A;border-radius:8px;padding:10px 14px;margin-top:8px}
-
+  .change-box {
+    display: flex;
+    justify-content: space-between;
+    background: #0A1A0A;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-top: 8px;
+  }
+  
   /* Scrollable cats */
-  .cat-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
-  .cat-scroll::-webkit-scrollbar{display:none}
-  .cat-btn{flex-shrink:0;padding:7px 12px;border-radius:8px;border:none;font-size:12px;cursor:pointer}
-  .cat-btn.active{background:var(--gold);color:#000}
-  .cat-btn:not(.active){background:var(--surface2);color:var(--muted)}
-
+  .cat-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 12px;
+    scrollbar-width: none;
+  }
+  
+  .cat-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .cat-btn {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 30px;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 500;
+  }
+  
+  .cat-btn.active {
+    background: var(--gold);
+    color: #000;
+  }
+  
+  .cat-btn:not(.active) {
+    background: var(--surface2);
+    color: var(--muted);
+  }
+  
+  .cat-btn:active {
+    transform: scale(0.95);
+  }
+  
   /* Bron counters */
-  .bron-counters{display:flex;gap:10px;border-top:1px solid var(--border);padding-top:12px;margin-top:12px}
-  .bron-counter{flex:1;text-align:center}
-  .bron-counter-label{font-size:11px}
-  .bron-counter-val{font-size:18px;font-weight:500}
-
-  /* Analytics export - responsive */
-  .date-range{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-  .date-range .date-item{flex:1;min-width:120px}
-  .date-range .inp{font-size:13px;padding:8px 10px;width:100%}
-
-  /* Date time row */
-  .dt-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-  .dt-row .inp{font-size:14px;padding:10px 8px}
-
-  /* Phone input */
-  .phone-inp{letter-spacing:1px}
-
+  .bron-counters {
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    margin-top: 12px;
+  }
+  
+  .bron-counter {
+    flex: 1;
+    text-align: center;
+  }
+  
+  .bron-counter-label {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  
+  .bron-counter-val {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  
+  /* Analytics */
+  .date-range {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .date-item {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .date-item .inp {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+  
+  /* Table buttons grid */
+  .table-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  
+  .table-btn {
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  
+  .table-btn.active {
+    border-color: var(--pink);
+    background: #2A0010;
+    color: var(--pink);
+  }
+  
+  .table-btn:active {
+    transform: scale(0.95);
+  }
+  
+  /* Time row */
+  .time-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .time-item {
+    flex: 1;
+  }
+  
   /* RestoFlow branding */
-  .restoflow{position:fixed;bottom:12px;left:0;right:0;text-align:center;font-size:10px;color:#444;letter-spacing:1px;pointer-events:none}
-  .restoflow span{color:#C9A84C;font-weight:500}
-
-  /* Floor container */
-  .floor-container{background:linear-gradient(160deg,#181818,#111);border-radius:16px;padding:8px;border:1px solid #2E2E2E}
+  .restoflow {
+    position: fixed;
+    bottom: 12px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10px;
+    color: #444;
+    letter-spacing: 1px;
+    pointer-events: none;
+  }
+  
+  .restoflow span {
+    color: #C9A84C;
+    font-weight: 500;
+  }
+  
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .card, .floor-container {
+    animation: fadeIn 0.3s ease;
+  }
 </style>
 </head>
 <body>
@@ -177,6 +750,7 @@ let viewMode = 'schema';
 let selTable = null;
 let subTables = null;
 let menuSearch = '';
+let menuSearchTimeout = null;
 let menuCat = 'shisha';
 let addingTo = null;
 let расчётTable = null;
@@ -185,8 +759,9 @@ let payMethod = null;
 let cashGiven = '';
 let bronTab = 'list';
 let bronTableId = null;
-let bronForm = {name:'',phone:'',guests:'2',time:'19:00',note:''};
+let bronForm = {name:'', phone:'', guests:'2', time:'19:00', note:''};
 let searchBron = '';
+let searchBronTimeout = null;
 let tableDetailId = null;
 let tableDetailTab = 'info';
 let analyticsTab = 'today';
@@ -194,10 +769,25 @@ let analyticsFrom = '';
 let analyticsTo = '';
 let analyticsData = null;
 
-// Helper: format rubles
-const fmtRub = n => Math.round(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ') + ' ₽';
+// Format rubles
+const fmtRub = n => Math.round(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
 
-// ── Menu data ──
+// Format phone to Russian format +7 xxx xxx xx xx
+function formatPhoneRussian(input) {
+  let v = input.value.replace(/\D/g, '');
+  if (v.startsWith('8')) v = '7' + v.slice(1);
+  if (!v.startsWith('7')) v = '7' + v;
+  v = v.slice(0, 11);
+  let f = '+7';
+  if (v.length > 1) f += ' ' + v.slice(1, 4);
+  if (v.length > 4) f += ' ' + v.slice(4, 7);
+  if (v.length > 7) f += ' ' + v.slice(7, 9);
+  if (v.length > 9) f += ' ' + v.slice(9, 11);
+  input.value = f;
+  return f;
+}
+
+// Menu data
 const MENU = {
   shisha:[
     {id:'s1',ru:'Классич. кальян (12-17ч)',en:'Classic Hookah (12-17h)',price:1000},
@@ -268,19 +858,19 @@ const MENU = {
     {id:'n4',ru:'Сет фруктовый M',en:'Fruit Set M',price:750},
   ],
 };
-const MENU_CATS = [
-  {k:'shisha',  ru:'🪔 Кальяны',  en:'🪔 Shisha'},
-  {k:'beer',    ru:'🍺 Пиво',     en:'🍺 Beer'},
-  {k:'lemonade',ru:'🍹 Лимонады',en:'🍹 Lemonade'},
-  {k:'drinks',  ru:'🥤 Напитки',  en:'🥤 Drinks'},
-  {k:'coffee',  ru:'☕ Кофе/Чай', en:'☕ Coffee/Tea'},
-  {k:'snacks',  ru:'🥜 Закуски',  en:'🥜 Snacks'},
-];
-const NO_DISC = ['shisha'];
-const DISCOUNTS = [10,15,20,30,50];
 
-// ── Helpers ──
-const $ = id => document.getElementById(id);
+const MENU_CATS = [
+  {k:'shisha', ru:'🪔 Кальяны', en:'🪔 Shisha'},
+  {k:'beer', ru:'🍺 Пиво', en:'🍺 Beer'},
+  {k:'lemonade', ru:'🍹 Лимонады', en:'🍹 Lemonade'},
+  {k:'drinks', ru:'🥤 Напитки', en:'🥤 Drinks'},
+  {k:'coffee', ru:'☕ Кофе/Чай', en:'☕ Coffee/Tea'},
+  {k:'snacks', ru:'🥜 Закуски', en:'🥜 Snacks'},
+];
+
+const NO_DISC = ['shisha'];
+
+// Translations
 const T = k => lang === 'ru' ? ({
   tables:'Столики', bron:'Бронь', analytics:'Аналитика',
   free:'Свободен', occupied:'Занят', reserved:'Забронирован',
@@ -301,11 +891,10 @@ const T = k => lang === 'ru' ? ({
   cashReceived:'Купюра клиента (₽)', liveStatus:'Сейчас в зале',
   busy:'Занято', freeCount:'Свободно', reserved2:'Бронь',
   salesByWaiter:'Продажи по официантам', bonus:'Бонус 2,5%',
-  exportCSV:'Экспорт CSV', exportPDF:'Экспорт PDF',
-  from:'С', to:'По', applyDiscount:'Применить скидку?',
+  exportCSV:'Экспорт CSV', from:'С', to:'По', applyDiscount:'Применить скидку?',
   discNote:'(не распространяется на кальяны)',
   open:'Открыть', late:'Ожидаем', openCount:'Открыто', newCount:'Новые',
-  noAnalytics:'Нет аналитики за выбранный период',
+  noAnalytics:'Нет аналитики за выбранный период', time:'Время',
 }[k]||k) : ({
   tables:'Tables', bron:'Bookings', analytics:'Analytics',
   free:'Free', occupied:'Busy', reserved:'Reserved',
@@ -326,20 +915,21 @@ const T = k => lang === 'ru' ? ({
   cashReceived:'Cash received (₽)', liveStatus:'Live status',
   busy:'Busy', freeCount:'Free', reserved2:'Reserved',
   salesByWaiter:'Sales per waiter', bonus:'Bonus 2.5%',
-  exportCSV:'Export CSV', exportPDF:'Export PDF',
-  from:'From', to:'To', applyDiscount:'Apply discount?',
+  exportCSV:'Export CSV', from:'From', to:'To', applyDiscount:'Apply discount?',
   discNote:'(not applicable to hookahs)',
   open:'Open', late:'Late', openCount:'Open', newCount:'New',
-  noAnalytics:'No analytics for selected period',
+  noAnalytics:'No analytics for selected period', time:'Time',
 }[k]||k);
 
 const toast = (msg, dur=2500) => {
-  const el = $('toast'); el.textContent = msg; el.classList.add('show');
+  const el = $('toast'); 
+  el.textContent = msg; 
+  el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), dur);
 };
 
 const tableTotal = (t, withDisc=false) => {
-  if(!t.orders) return 0;
+  if(!t || !t.orders) return 0;
   const raw = (t.orders||[]).reduce((s,o)=>s+o.price*o.qty,0);
   if(!withDisc||!t.discount) return raw;
   const disc = (t.orders||[]).filter(o=>!NO_DISC.includes(o.category)).reduce((s,o)=>s+o.price*o.qty,0);
@@ -349,7 +939,9 @@ const tableTotal = (t, withDisc=false) => {
 const statusColor = s => s==='occupied'?'var(--gold)':s==='reserved'?'var(--pink)':'var(--green)';
 const statusBadge = s => `<span class="badge badge-${s}">${T(s==='occupied'?'occupied':s==='reserved'?'reserved':'free')}</span>`;
 
-// ── Supabase realtime ──
+const $ = id => document.getElementById(id);
+
+// Supabase
 async function loadTables() {
   const {data} = await sb.from('tables').select('*, orders(*)').order('id');
   if(data) {
@@ -365,12 +957,11 @@ async function loadTables() {
 
 function subscribeRealtime() {
   subTables = sb.channel('tables-channel')
-    .on('postgres_changes',{event:'*',schema:'public'},(payload)=>{
-      loadTables();
-    }).subscribe();
+    .on('postgres_changes',{event:'*',schema:'public'},()=>{ loadTables(); })
+    .subscribe();
 }
 
-// ── Login ──
+// Login
 async function tryLogin(p) {
   const {data:ws} = await sb.from('waiters').select('*').eq('pin',p).eq('is_active',true);
   if(!ws||ws.length===0) return false;
@@ -378,14 +969,14 @@ async function tryLogin(p) {
   return true;
 }
 
-// ── DB Actions ──
+// DB Actions
 async function dbAddOrder(tableId, item, cat) {
   await sb.from('orders').insert({
     table_id:tableId, waiter_id:waiter.id,
     item_id:item.id, item_name_ru:item.ru, item_name_en:item.en,
     category:cat, price:item.price, qty:1
   });
-  await sb.from('tables').update({status:'occupied',waiter_id:waiter.id}).eq('id',tableId);
+  await sb.from('tables').update({status:'occupied', waiter_id:waiter.id}).eq('id',tableId);
   await loadTables();
 }
 
@@ -394,7 +985,7 @@ async function dbRemoveOrder(orderId, tableId) {
   const t = tables.find(t=>t.id===tableId);
   const remaining = (t.orders||[]).filter(o=>o.id!==orderId);
   if(remaining.length===0){
-    await sb.from('tables').update({status:'free',waiter_id:null,discount:0}).eq('id',tableId);
+    await sb.from('tables').update({status:'free', waiter_id:null, discount:0}).eq('id',tableId);
   }
   await loadTables();
 }
@@ -414,7 +1005,7 @@ async function dbConfirmPay(tableId, method, raw, final, disc, given, chg) {
     change_given:method==='cash'?chg:null
   });
   await sb.from('orders').delete().eq('table_id',tableId);
-  await sb.from('tables').update({status:'free',waiter_id:null,discount:0}).eq('id',tableId);
+  await sb.from('tables').update({status:'free', waiter_id:null, discount:0}).eq('id',tableId);
   await loadTables();
 }
 
@@ -430,7 +1021,7 @@ async function dbSaveBron(tableId, form) {
 
 async function dbOpenTable(tableId) {
   await sb.from('brons').update({status:'opened'}).eq('table_id',tableId).eq('status','active');
-  await sb.from('tables').update({status:'occupied',waiter_id:waiter.id}).eq('id',tableId);
+  await sb.from('tables').update({status:'occupied', waiter_id:waiter.id}).eq('id',tableId);
   await loadTables();
 }
 
@@ -449,7 +1040,7 @@ async function loadAnalytics(from, to) {
     .select('*, waiters(name)')
     .gte('paid_at', from+'T00:00:00')
     .lte('paid_at', to+'T23:59:59')
-    .order('paid_at',{ascending:false});
+    .order('paid_at', {ascending:false});
   analyticsData = payments||[];
   renderAnalytics();
 }
@@ -474,7 +1065,7 @@ function exportCSV() {
   a.click();
 }
 
-// ── RENDER ──
+// Render
 function render() {
   if(screen==='login'){ renderLogin(); return; }
   renderMain();
@@ -515,18 +1106,27 @@ function pinPress(d) {
   _pinVal += d; updateDots();
   if(_pinVal.length===4) doLogin();
 }
+
 function updateDots(err=false) {
   for(let i=0;i<4;i++){
     const dot=$('dot'+i);
     if(!dot) return;
-    dot.classList.toggle('filled',i<_pinVal.length&&!err);
-    dot.classList.toggle('error',i<_pinVal.length&&err);
+    dot.classList.toggle('filled',i<_pinVal.length && !err);
+    dot.classList.toggle('error',i<_pinVal.length && err);
   }
 }
+
 async function doLogin() {
   const ok = await tryLogin(_pinVal);
-  if(ok){ screen='main'; document.body.style.overflow = 'auto'; await loadTables(); subscribeRealtime(); }
-  else { updateDots(true); setTimeout(()=>{ _pinVal=''; updateDots(); },700); }
+  if(ok){ 
+    screen='main'; 
+    document.body.style.overflow = 'auto'; 
+    await loadTables(); 
+    subscribeRealtime(); 
+  } else { 
+    updateDots(true); 
+    setTimeout(()=>{ _pinVal=''; updateDots(); },700); 
+  }
 }
 
 function toggleLang(){ lang=lang==='ru'?'en':'ru'; render(); }
@@ -570,7 +1170,7 @@ function renderContent() {
   else if(tab==='analytics') renderAnalyticsTab(c);
 }
 
-// ── TABLES ──
+// Tables
 function renderTables(c) {
   if(addingTo!==null){ renderAddOrder(c); return; }
   if(расчётTable!==null){ renderRaschet(c); return; }
@@ -605,7 +1205,7 @@ function renderFloorPlan() {
   const lx=18, rx=210;
 
   const tcs=[
-    {id:7, x:lx+20, y:32,  w:36, h:70, shape:'vertical'},  // Table 7 vertical
+    {id:7, x:lx+20, y:32,  w:36, h:70, shape:'vertical'},
     {id:6, x:lx+18, y:130, w:36, h:36, shape:'round'},
     {id:5, x:lx, y:200, w:TW, h:TH, shape:'rect'},
     {id:4, x:lx, y:270, w:TW, h:TH, shape:'rect'},
@@ -623,7 +1223,6 @@ function renderFloorPlan() {
     if(tc.shape==='round'){
       sofasSVG=chair(tc.x-12,tc.y+8,10,20,col)+chair(tc.x+tc.w+2,tc.y+8,10,20,col);
     } else if(tc.shape==='vertical'){
-      // Sofas on left and right sides (vertical orientation)
       sofasSVG=sofaVertical(tc.x-SF-1,tc.y,SF,tc.h,col)+sofaVertical(tc.x+tc.w+1,tc.y,SF,tc.h,col);
     } else {
       sofasSVG=sofaHorizontal(tc.x,tc.y-SF-1,tc.w,SF,col)+sofaHorizontal(tc.x,tc.y+tc.h+1,tc.w,SF,col);
@@ -666,15 +1265,15 @@ function renderFloorPlan() {
 function renderTableList() {
   return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
     ${tables.map(t=>`
-    <div onclick="selTableClick(${t.id})" style="background:var(--surface);border:2px solid ${selTable===t.id?statusColor(t.status):'var(--border)'};border-radius:12px;padding:12px;cursor:pointer">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <span style="font-size:14px;font-weight:500">${T('table')} ${t.id}</span>
-        <span style="width:8px;height:8px;border-radius:50%;background:${statusColor(t.status)};display:inline-block"></span>
+    <div onclick="selTableClick(${t.id})" style="background:var(--surface);border:2px solid ${selTable===t.id?statusColor(t.status):'var(--border)'};border-radius:14px;padding:14px;cursor:pointer;transition:var(--transition)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:15px;font-weight:600">${T('table')} ${t.id}</span>
+        <span style="width:10px;height:10px;border-radius:50%;background:${statusColor(t.status)};display:inline-block"></span>
       </div>
-      <div style="font-size:11px;color:${statusColor(t.status)};margin-bottom:4px">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div>
-      ${t.status==='occupied'?`<div style="font-size:13px;color:var(--gold)">${tableTotal(t,true)} ₽</div>`:''}
+      <div style="font-size:12px;color:${statusColor(t.status)};margin-bottom:4px;font-weight:500">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div>
+      ${t.status==='occupied'?`<div style="font-size:14px;color:var(--gold);font-weight:600">${tableTotal(t,true)} ₽</div>`:''}
       ${selTable===t.id?`
-      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px" onclick="event.stopPropagation()">
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px" onclick="event.stopPropagation()">
         <button class="btn btn-gold btn-sm" onclick="startAddOrder(${t.id})">${T('addOrder')}</button>
         ${t.orders?.length>0?`<button class="btn btn-outline-gold btn-sm" onclick="startRaschet(${t.id})">💰 ${T('checkout')}</button>`:''}
       </div>`:''}
@@ -686,11 +1285,11 @@ function renderTablePopup() {
   const t=tables.find(t=>t.id===selTable); if(!t) return '';
   return `
   <div class="card" style="margin-top:12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span style="font-weight:500;font-size:15px">${T('table')} №${selTable}</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-weight:600;font-size:16px">${T('table')} №${selTable}</span>
       ${statusBadge(t.status)}
     </div>
-    ${t.status==='occupied'?`<div style="font-size:13px;color:var(--gold);margin-bottom:8px">${T('total')}: ${tableTotal(t,true)} ₽</div>`:''}
+    ${t.status==='occupied'?`<div style="font-size:14px;color:var(--gold);margin-bottom:10px;font-weight:600">${T('total')}: ${tableTotal(t,true)} ₽</div>`:''}
     <button class="btn btn-outline" onclick="openTableDetail(${selTable})">ℹ️ ${T('tableDetail')}</button>
     <button class="btn btn-gold" onclick="startAddOrder(${selTable})">+ ${T('addOrder')}</button>
     <button class="btn btn-pink" onclick="startNewBron(${selTable})">+ ${T('bron')}</button>
@@ -698,7 +1297,7 @@ function renderTablePopup() {
   </div>`;
 }
 
-// ── ADD ORDER ──
+// Add Order
 function renderAddOrder(c) {
   const t=tables.find(t=>t.id===addingTo)||{orders:[],discount:0};
   const items = menuSearch
@@ -706,72 +1305,82 @@ function renderAddOrder(c) {
     : (MENU[menuCat]||[]).map(i=>({...i,cat:menuCat}));
 
   c.innerHTML = `
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="setAddingTo(null)">← ${T('back')}</button>
-    <span style="color:var(--gold);font-size:15px">${lang==='ru'?'Меню — Стол':'Menu — Table'} ${addingTo}</span>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <button class="btn btn-outline" style="width:auto;padding:8px 14px;margin-bottom:0" onclick="setAddingTo(null)">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:16px;font-weight:600">${lang==='ru'?'Меню — Стол':'Menu — Table'} ${addingTo}</span>
   </div>
-  <div style="position:relative;margin-bottom:12px">
-    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%)">🔍</span>
-    <input class="inp" style="padding-left:36px" placeholder="${T('searchMenu')}" value="${menuSearch}" oninput="setMenuSearch(this.value)" inputmode="search"/>
+  <div style="position:relative;margin-bottom:14px">
+    <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%)">🔍</span>
+    <input class="inp" style="padding-left:42px" placeholder="${T('searchMenu')}" value="${menuSearch}" oninput="handleMenuSearch(this.value)" inputmode="search"/>
   </div>
   ${!menuSearch?`<div class="cat-scroll">${MENU_CATS.map(c=>`<button class="cat-btn ${menuCat===c.k?'active':''}" onclick="setMenuCat('${c.k}')">${c[lang]}</button>`).join('')}</div>`:''}
-  ${items.map(item=>`
-  <div class="card" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:10px 14px">
-    <div>
-      <div style="font-size:14px;margin-bottom:2px">${lang==='ru'?item.ru:item.en}</div>
-      <div style="font-size:13px;color:var(--gold)">${item.price} ₽</div>
-    </div>
-    <button onclick="doAddOrder('${item.id}','${item.ru}','${item.en}',${item.price},'${item.cat}')" style="background:var(--gold);border:none;border-radius:8px;width:34px;height:34px;font-size:20px;cursor:pointer;color:#000;flex-shrink:0">+</button>
-  </div>`).join('')}
+  <div style="max-height:400px;overflow-y:auto">
+    ${items.map(item=>`
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:12px 14px">
+      <div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:4px">${lang==='ru'?item.ru:item.en}</div>
+        <div style="font-size:13px;color:var(--gold);font-weight:600">${item.price} ₽</div>
+      </div>
+      <button onclick="doAddOrder('${item.id}','${item.ru}','${item.en}',${item.price},'${item.cat}')" style="background:var(--gold);border:none;border-radius:10px;width:38px;height:38px;font-size:20px;cursor:pointer;color:#000;flex-shrink:0;transition:var(--transition)">+</button>
+    </div>`).join('')}
+  </div>
   ${t.orders?.length>0?`
-  <div class="card" style="margin-top:8px">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">${T('orders')}</div>
+  <div class="card" style="margin-top:12px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('orders')}</div>
     ${t.orders.map(o=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
       <span style="font-size:13px">${lang==='ru'?o.item_name_ru:o.item_name_en} × ${o.qty}</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:13px;color:var(--gold)">${o.price*o.qty} ₽</span>
-        <button onclick="doRemoveOrder('${o.id}',${addingTo})" style="background:none;border:1px solid var(--border);border-radius:6px;width:24px;height:24px;font-size:14px;color:var(--red);cursor:pointer">−</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:14px;color:var(--gold);font-weight:600">${o.price*o.qty} ₽</span>
+        <button onclick="doRemoveOrder('${o.id}',${addingTo})" style="background:none;border:1px solid var(--border);border-radius:8px;width:28px;height:28px;font-size:16px;color:var(--red);cursor:pointer;transition:var(--transition)">−</button>
       </div>
     </div>`).join('')}
-    <div style="display:flex;justify-content:space-between;margin-top:8px;font-weight:500">
+    <div style="display:flex;justify-content:space-between;margin-top:10px;font-weight:700;font-size:16px">
       <span>${T('total')}</span><span style="color:var(--gold)">${tableTotal(t)} ₽</span>
     </div>
   </div>`:''}`;
 }
 
-// ── РАСЧЁТ ──
+function handleMenuSearch(value) {
+  if (menuSearchTimeout) clearTimeout(menuSearchTimeout);
+  menuSearchTimeout = setTimeout(() => {
+    menuSearch = value;
+    renderContent();
+  }, 300);
+}
+
+// Checkout
 function renderRaschet(c) {
   const t=tables.find(t=>t.id===расчётTable); if(!t) return;
   const raw=tableTotal(t,false), disc=tableTotal(t,true);
   c.innerHTML = `
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="setRaschet(null)">← ${T('back')}</button>
-    <span style="color:var(--gold)">💰 ${lang==='ru'?'Расчёт — Стол':'Checkout — Table'} №${расчётTable}</span>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <button class="btn btn-outline" style="width:auto;padding:8px 14px;margin-bottom:0" onclick="setRaschet(null)">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:16px;font-weight:600">💰 ${lang==='ru'?'Расчёт — Стол':'Checkout — Table'} №${расчётTable}</span>
   </div>
   <div class="card">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">${T('orders')}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('orders')}</div>
     ${t.orders.map(o=>`
-    <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border)">
       <span>${lang==='ru'?o.item_name_ru:o.item_name_en} × ${o.qty}</span>
-      <span style="color:var(--gold)">${o.price*o.qty} ₽</span>
+      <span style="color:var(--gold);font-weight:500">${o.price*o.qty} ₽</span>
     </div>`).join('')}
-    <div style="display:flex;justify-content:space-between;margin-top:8px;font-weight:500;font-size:15px">
+    <div style="display:flex;justify-content:space-between;margin-top:10px;font-weight:700;font-size:16px">
       <span>${T('total')}</span><span style="color:var(--gold)">${raw} ₽</span>
     </div>
   </div>
   <div class="card">
-    <div style="font-size:14px;font-weight:500;margin-bottom:6px">${T('applyDiscount')}</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${T('discNote')}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:${t.discount>0?12:0}px">
-      ${[0,...[10,15,20,30,50]].map(pct=>pct===0?'':`<button class="disc-btn ${t.discount===pct?'active':''}" onclick="doSetDiscount(${расчётTable},${pct})">${pct}%</button>`).join('')}
-      ${t.discount>0?`<button onclick="doSetDiscount(${расчётTable},0)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--red);font-size:13px;cursor:pointer">✕ ${lang==='ru'?'Убрать':'Remove'}</button>`:''}
+    <div style="font-size:14px;font-weight:600;margin-bottom:8px">${T('applyDiscount')}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${T('discNote')}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:${t.discount>0?14:0}px">
+      ${[10,15,20,30,50].map(pct=>`<button class="disc-btn ${t.discount===pct?'active':''}" onclick="doSetDiscount(${расчётTable},${pct})">${pct}%</button>`).join('')}
+      ${t.discount>0?`<button onclick="doSetDiscount(${расчётTable},0)" style="padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:none;color:var(--red);font-size:13px;cursor:pointer;transition:var(--transition)">✕ ${lang==='ru'?'Убрать':'Remove'}</button>`:''}
     </div>
     ${t.discount>0?`
-    <div style="background:#1A1500;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between">
+    <div style="background:#1A1500;border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between">
       <span style="font-size:13px;color:var(--muted)">${lang==='ru'?'К оплате со скидкой':'Total with discount'}</span>
       <div style="text-align:right">
-        <div style="font-size:18px;font-weight:700;color:var(--gold)">${disc} ₽</div>
+        <div style="font-size:20px;font-weight:700;color:var(--gold)">${disc} ₽</div>
         <div style="font-size:12px;color:var(--green)">-${raw-disc} ₽ (-${t.discount}%)</div>
       </div>
     </div>`:''}
@@ -780,15 +1389,15 @@ function renderRaschet(c) {
   <button class="btn btn-outline" onclick="setRaschet(null)">${T('cancel')}</button>`;
 }
 
-// ── BILL ──
+// Bill
 function renderBill(c) {
   const t=tables.find(t=>t.id===billTable); if(!t) return;
   const raw=tableTotal(t,false), disc=tableTotal(t,true);
   const given=parseFloat(cashGiven)||0, change=given-disc;
   c.innerHTML = `
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="backToBill()">← ${T('back')}</button>
-    <span style="color:var(--gold)">🖨️ Чек — ${T('table')} №${billTable}</span>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <button class="btn btn-outline" style="width:auto;padding:8px 14px;margin-bottom:0" onclick="backToBill()">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:16px;font-weight:600">🖨️ Чек — ${T('table')} №${billTable}</span>
   </div>
   <div class="receipt">
     <div class="receipt-title">SUPERNOVA</div>
@@ -804,17 +1413,17 @@ function renderBill(c) {
     <div class="receipt-total"><span>ИТОГО</span><span>${disc} ₽</span></div>
     <div style="font-size:10px;color:#999;text-align:center;margin-top:10px">Спасибо за визит!</div>
   </div>
-  <div style="font-size:13px;color:var(--muted);margin-bottom:10px;text-align:center">${lang==='ru'?'Способ оплаты':'Payment method'}</div>
-  <div style="display:flex;gap:10px;margin-bottom:14px">
+  <div style="font-size:13px;color:var(--muted);margin-bottom:12px;text-align:center;font-weight:500">${lang==='ru'?'Способ оплаты':'Payment method'}</div>
+  <div style="display:flex;gap:12px;margin-bottom:16px">
     <button class="pay-btn ${payMethod==='cash'?'active':''}" onclick="setPayMethod('cash')">💵 ${T('cash')}</button>
     <button class="pay-btn ${payMethod==='card'?'active':''}" onclick="setPayMethod('card')">💳 ${T('card')}</button>
   </div>
   ${payMethod==='cash'?`
-  <div class="card" style="margin-bottom:14px">
-    <div style="font-size:13px;color:var(--muted);margin-bottom:8px">${T('cashReceived')}</div>
-    <input type="number" class="inp" style="font-size:22px;font-weight:500;text-align:center;margin-bottom:10px" value="${cashGiven}" placeholder="0" oninput="setCashGiven(this.value)"/>
-    ${given>=disc?`<div class="change-box"><span style="font-size:14px;color:var(--muted)">${T('change')}</span><span style="font-size:20px;font-weight:500;color:var(--green)">${change.toFixed(0)} ₽</span></div>`:''}
-    ${cashGiven&&given<disc?`<div style="text-align:center;color:var(--red);font-size:13px">${T('notEnough')} (${(disc-given).toFixed(0)} ₽)</div>`:''}
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:13px;color:var(--muted);margin-bottom:10px;font-weight:500">${T('cashReceived')}</div>
+    <input type="number" class="inp" style="font-size:22px;font-weight:700;text-align:center;margin-bottom:12px" value="${cashGiven}" placeholder="0" oninput="setCashGiven(this.value)"/>
+    ${given>=disc?`<div class="change-box"><span style="font-size:14px;font-weight:500;color:var(--muted)">${T('change')}</span><span style="font-size:22px;font-weight:700;color:var(--green)">${change.toFixed(0)} ₽</span></div>`:''}
+    ${cashGiven && given<disc?`<div style="text-align:center;color:var(--red);font-size:13px;margin-top:8px">${T('notEnough')} (${(disc-given).toFixed(0)} ₽)</div>`:''}
   </div>`:''}
   <button class="btn btn-gold" ${!payMethod||(payMethod==='cash'&&given<disc)?'disabled style="opacity:0.4"':''} onclick="doConfirmPay()">
     ${T('paid')}
@@ -822,24 +1431,24 @@ function renderBill(c) {
   <button class="btn btn-outline" onclick="backToBill()">${T('cancel')}</button>`;
 }
 
-// ── TABLE DETAIL ──
+// Table Detail
 function renderTableDetail(c) {
   const t=tables.find(t=>t.id===tableDetailId); if(!t) return;
   c.innerHTML = `
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="closeTableDetail()">← ${T('back')}</button>
-    <span style="color:var(--gold)">${T('table')} №${tableDetailId}</span>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <button class="btn btn-outline" style="width:auto;padding:8px 14px;margin-bottom:0" onclick="closeTableDetail()">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:16px;font-weight:600">${T('table')} №${tableDetailId}</span>
     ${statusBadge(t.status)}
   </div>
-  <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:14px">
-    <button onclick="setTableDetailTab('info')" style="flex:1;padding:12px;background:none;border:none;color:${tableDetailTab==='info'?'var(--pink)':'var(--muted)'};border-bottom:${tableDetailTab==='info'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer">${T('table')} №${tableDetailId}</button>
-    <button onclick="setTableDetailTab('bron')" style="flex:1;padding:12px;background:none;border:none;color:${tableDetailTab==='bron'?'var(--pink)':'var(--muted)'};border-bottom:${tableDetailTab==='bron'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer">${T('bookings')}</button>
+  <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px">
+    <button onclick="setTableDetailTab('info')" style="flex:1;padding:12px;background:none;border:none;color:${tableDetailTab==='info'?'var(--pink)':'var(--muted)'};border-bottom:${tableDetailTab==='info'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer;font-weight:500;transition:var(--transition)">${T('table')} №${tableDetailId}</button>
+    <button onclick="setTableDetailTab('bron')" style="flex:1;padding:12px;background:none;border:none;color:${tableDetailTab==='bron'?'var(--pink)':'var(--muted)'};border-bottom:${tableDetailTab==='bron'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer;font-weight:500;transition:var(--transition)">${T('bookings')}</button>
   </div>
   ${tableDetailTab==='info'?`
-    <div style="background:var(--surface2);border-radius:12px;height:160px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:13px;color:var(--muted)">📷 ${lang==='ru'?'Фото стола':'Table photo'}</div>
-    <div style="display:flex;gap:10px;margin-bottom:14px">
-      <div class="metric"><div class="metric-label">Статус</div><div class="metric-val" style="font-size:13px;color:${statusColor(t.status)}">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div></div>
-      <div class="metric"><div class="metric-label">Броней</div><div class="metric-val" style="color:var(--pink)">${t.brons?.length||0}</div></div>
+    <div style="background:var(--surface2);border-radius:16px;height:160px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:13px;color:var(--muted)">📷 ${lang==='ru'?'Фото стола':'Table photo'}</div>
+    <div style="display:flex;gap:12px;margin-bottom:16px">
+      <div class="metric"><div class="metric-label">Статус</div><div class="metric-val" style="font-size:14px;color:${statusColor(t.status)}">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div></div>
+      <div class="metric"><div class="metric-label">Броней</div><div class="metric-val" style="font-size:14px;color:var(--pink)">${t.brons?.length||0}</div></div>
       ${t.status==='occupied'?`<div class="metric"><div class="metric-label">Счёт</div><div class="metric-val" style="font-size:14px;color:var(--gold)">${tableTotal(t)} ₽</div></div>`:''}
     </div>
     <button class="btn btn-pink" onclick="startNewBron(${tableDetailId})">+ ${T('newBron')}</button>
@@ -849,12 +1458,12 @@ function renderTableDetail(c) {
     ${!t.brons?.length?`<div style="text-align:center;color:var(--muted);padding:40px">${T('noBookings')}</div>`
     :t.brons.map(b=>`
     <div class="card">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <span style="font-weight:500">${b.guest_name}</span><span style="color:var(--pink);font-size:13px">${b.arrival_time}</span>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-weight:600">${b.guest_name}</span><span style="color:var(--pink);font-size:13px;font-weight:500">${b.arrival_time}</span>
       </div>
-      <div style="font-size:13px;color:var(--muted)">${b.guest_phone||''} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
-      ${b.note?`<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">${b.note}</div>`:''}
-      <div style="display:flex;gap:8px;margin-top:10px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:4px">${b.guest_phone||''} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
+      ${b.note?`<div style="font-size:12px;color:var(--muted);margin-top:6px;font-style:italic">${b.note}</div>`:''}
+      <div style="display:flex;gap:10px;margin-top:12px">
         <button class="btn btn-green btn-sm" onclick="doOpenTable(${tableDetailId})">${T('open')}</button>
         <button class="btn btn-outline-red btn-sm" onclick="doCancelBron('${b.id}',${tableDetailId})">✕ ${T('cancelBron')}</button>
       </div>
@@ -863,30 +1472,36 @@ function renderTableDetail(c) {
   `}`;
 }
 
-// ── BRON ──
+// Bron
 function renderBron(c) {
   if(bronTab==='new'){ renderNewBron(c); return; }
-  const brons = tables.flatMap(t=>(t.brons||[]).map(b=>({...b,tableId:t.id})))
-    .filter(b=>!searchBron||b.guest_name?.toLowerCase().includes(searchBron.toLowerCase())||b.guest_phone?.includes(searchBron));
-  const allBrons = tables.flatMap(t=>(t.brons||[]));
-  const now = new Date(); const nowMin=now.getHours()*60+now.getMinutes();
-  const lateCount = allBrons.filter(b=>{const[h,m]=(b.arrival_time||'0:0').split(':');return(parseInt(h)*60+parseInt(m))<nowMin;}).length;
+  
+  // Filter active brons only (not opened/cancelled)
+  const brons = tables.flatMap(t=>(t.brons||[]).filter(b=>b.status==='active').map(b=>({...b, tableId:t.id})))
+    .filter(b=>!searchBron || b.guest_name?.toLowerCase().includes(searchBron.toLowerCase()) || b.guest_phone?.includes(searchBron));
+  
+  const now = new Date(); 
+  const nowMin = now.getHours()*60 + now.getMinutes();
+  const lateCount = brons.filter(b => {
+    const [h,m] = (b.arrival_time||'0:0').split(':');
+    return (parseInt(h)*60 + parseInt(m)) < nowMin;
+  }).length;
 
   c.innerHTML = `
-  <div style="display:flex;gap:8px;margin-bottom:14px">
-    <div class="search-wrap"><span class="search-icon">🔍</span><input class="inp" placeholder="${lang==='ru'?'Имя или телефон':'Name or phone'}" value="${searchBron}" oninput="setSearchBron(this.value)" inputmode="search"/></div>
-    <button class="btn btn-pink" style="width:auto;padding:0 14px;white-space:nowrap;margin-bottom:0" onclick="setBronTab('new')">+ ${T('bron')}</button>
+  <div style="display:flex;gap:10px;margin-bottom:16px">
+    <div class="search-wrap"><span class="search-icon">🔍</span><input class="inp" placeholder="${lang==='ru'?'Имя или телефон':'Name or phone'}" value="${searchBron}" oninput="handleBronSearch(this.value)" inputmode="search"/></div>
+    <button class="btn btn-pink" style="width:auto;padding:0 18px;white-space:nowrap;margin-bottom:0" onclick="setBronTab('new')">+ ${T('bron')}</button>
   </div>
   ${!brons.length?`<div style="text-align:center;color:var(--muted);padding:40px">${T('noBookings')}</div>`
   :brons.map(b=>`
   <div class="card">
-    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-      <span style="font-weight:500">${b.guest_name}</span><span style="color:var(--pink);font-size:13px">${b.arrival_time}</span>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+      <span style="font-weight:600">${b.guest_name}</span><span style="color:var(--pink);font-size:13px;font-weight:500">${b.arrival_time}</span>
     </div>
-    <div style="font-size:13px;color:var(--muted)">${T('table')} №${b.tableId} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">${T('table')} №${b.tableId} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
     <div style="font-size:13px;color:var(--muted)">${b.guest_phone||''}</div>
-    ${b.note?`<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">${b.note}</div>`:''}
-    <div style="display:flex;gap:8px;margin-top:10px">
+    ${b.note?`<div style="font-size:12px;color:var(--muted);margin-top:6px;font-style:italic">${b.note}</div>`:''}
+    <div style="display:flex;gap:10px;margin-top:12px">
       <button class="btn btn-green btn-sm" onclick="doOpenTable(${b.tableId})">${T('open')}</button>
       <button class="btn btn-outline-red btn-sm" onclick="doCancelBron('${b.id}',${b.tableId})">✕ ${T('cancelBron')}</button>
     </div>
@@ -898,52 +1513,72 @@ function renderBron(c) {
   </div>`;
 }
 
+function handleBronSearch(value) {
+  if (searchBronTimeout) clearTimeout(searchBronTimeout);
+  searchBronTimeout = setTimeout(() => {
+    searchBron = value;
+    renderContent();
+  }, 300);
+}
+
 function renderNewBron(c) {
+  const today = new Date().toISOString().split('T')[0];
   c.innerHTML = `
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="setBronTab('list')">← ${T('back')}</button>
-    <span style="color:var(--gold)">${T('newBron')}</span>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <button class="btn btn-outline" style="width:auto;padding:8px 14px;margin-bottom:0" onclick="setBronTab('list')">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:16px;font-weight:600">${T('newBron')}</span>
   </div>
-  <div style="margin-bottom:14px">
+  <div class="card">
     <label class="lbl">${T('table')}</label>
-    <div style="display:flex;flex-wrap:wrap;gap:8px">
-      ${tables.map(t=>`<button onclick="setBronTableId(${t.id})" style="padding:8px 14px;border-radius:8px;border:2px solid ${bronTableId===t.id?'var(--pink)':'var(--border)'};background:${bronTableId===t.id?'#2A0010':'var(--surface)'};color:${bronTableId===t.id?'var(--pink)':'var(--muted)'};font-size:14px;cursor:pointer">№${t.id}</button>`).join('')}
+    <div class="table-buttons">
+      ${tables.filter(t=>t.status!=='occupied').map(t=>`<button class="table-btn ${bronTableId===t.id?'active':''}" onclick="setBronTableId(${t.id})">№${t.id}</button>`).join('')}
     </div>
+    <label class="lbl">${T('guestName')}</label>
+    <input class="inp" style="margin-bottom:16px" id="bron-name" value="${bronForm.name}" placeholder="${lang==='ru'?'Иван Петров':'John Smith'}"/>
+    
+    <label class="lbl">${T('phone')}</label>
+    <input class="inp phone-inp" style="margin-bottom:16px" id="bron-phone" value="${bronForm.phone}" placeholder="+7 ___ ___ __ __" oninput="handlePhoneInput(this)"/>
+    
+    <div class="time-row">
+      <div class="time-item"><label class="lbl">${T('guests')}</label><input type="number" class="inp" id="bron-guests" value="${bronForm.guests}" min="1"/></div>
+      <div class="time-item"><label class="lbl">${T('time')}</label><input type="time" class="inp" id="bron-time" value="${bronForm.time}"/></div>
+    </div>
+    
+    <label class="lbl">${T('note')}</label>
+    <input class="inp" id="bron-note" value="${bronForm.note}" placeholder="${lang==='ru'?'День рождения, особые пожелания...':'Special requests...'}"/>
   </div>
-  <label class="lbl">${T('guestName')}</label>
-  <input class="inp" style="margin-bottom:14px" id="bron-name" value="${bronForm.name}" placeholder="${lang==='ru'?'Иван Петров':'John Smith'}"/>
-  <label class="lbl">${T('phone')}</label>
-  <input class="inp phone-inp" style="margin-bottom:14px" id="bron-phone" value="${bronForm.phone}" placeholder="+7 xxx xxx xx xx"/>
-  <div class="dt-row">
-    <div><label class="lbl">${T('guests')}</label><input type="number" class="inp" id="bron-guests" value="${bronForm.guests}" min="1"/></div>
-    <div><label class="lbl">${lang==='ru'?'Время':'Time'}</label><input type="time" class="inp" id="bron-time" value="${bronForm.time}"/></div>
-  </div>
-  <label class="lbl">${T('note')}</label>
-  <input class="inp" style="margin-bottom:14px" id="bron-note" value="${bronForm.note}" placeholder="${lang==='ru'?'День рождения, особые пожелания...':'Special requests...'}"/>
   <button class="btn btn-pink" onclick="doSaveBronFromForm()">${T('save')} →</button>`;
 }
 
-// ── ANALYTICS ──
+function handlePhoneInput(input) {
+  bronForm.phone = formatPhoneRussian(input);
+}
+
+// Analytics
 function renderAnalyticsTab(c) {
-  if(!waiter?.is_admin){ c.innerHTML=`<div style="text-align:center;padding:60px;color:var(--muted)">${lang==='ru'?'Только для администратора':'Admin only'}</div>`; return; }
+  if(!waiter?.is_admin){ 
+    c.innerHTML=`<div style="text-align:center;padding:60px;color:var(--muted)">${lang==='ru'?'Только для администратора':'Admin only'}</div>`; 
+    return; 
+  }
+  
   const today = new Date().toISOString().split('T')[0];
   if(!analyticsFrom) analyticsFrom = today;
   if(!analyticsTo) analyticsTo = today;
 
   const live = `
-  <div class="card" style="margin-bottom:14px">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('liveStatus')}</div>
-    <div style="display:flex;gap:10px">
-      <div class="metric"><div class="metric-label" style="color:var(--gold)">${T('busy')}</div><div class="metric-val" style="color:var(--gold)">${tables.filter(t=>t.status==='occupied').length}</div></div>
-      <div class="metric"><div class="metric-label" style="color:var(--green)">${T('freeCount')}</div><div class="metric-val" style="color:var(--green)">${tables.filter(t=>t.status==='free').length}</div></div>
-      <div class="metric"><div class="metric-label" style="color:var(--pink)">${T('reserved2')}</div><div class="metric-val" style="color:var(--pink)">${tables.filter(t=>t.status==='reserved').length}</div></div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">${T('liveStatus')}</div>
+    <div style="display:flex;gap:12px">
+      <div class="metric"><div class="metric-label" style="color:var(--gold)">${T('busy')}</div><div class="metric-val" style="color:var(--gold);font-size:20px">${tables.filter(t=>t.status==='occupied').length}</div></div>
+      <div class="metric"><div class="metric-label" style="color:var(--green)">${T('freeCount')}</div><div class="metric-val" style="color:var(--green);font-size:20px">${tables.filter(t=>t.status==='free').length}</div></div>
+      <div class="metric"><div class="metric-label" style="color:var(--pink)">${T('reserved2')}</div><div class="metric-val" style="color:var(--pink);font-size:20px">${tables.filter(t=>t.status==='reserved').length}</div></div>
     </div>
   </div>`;
 
   c.innerHTML = live + `
   <div class="card">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('period')}</div>
-    <div class="toggle" style="margin-bottom:10px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">${T('period')}</div>
+    <div class="toggle" style="margin-bottom:14px">
       ${['today','week','month','year'].map(p=>`<button class="toggle-btn ${analyticsTab===p?'active':''}" onclick="setAnalyticsPreset('${p}')">${T(p)}</button>`).join('')}
     </div>
     <div class="date-range">
@@ -956,7 +1591,9 @@ function renderAnalyticsTab(c) {
 }
 
 function renderAnalytics() {
-  const el = $('analytics-results'); if(!el) return;
+  const el = $('analytics-results'); 
+  if(!el) return;
+  
   if(!analyticsData || analyticsData.length===0){ 
     el.innerHTML=`<div class="loader">${T('noAnalytics')}</div>`; 
     return; 
@@ -973,48 +1610,47 @@ function renderAnalytics() {
   });
 
   el.innerHTML = `
-  <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-    <div class="metric"><div class="metric-label">${T('revenue')}</div><div class="metric-val" style="font-size:18px;color:var(--gold)">${fmtRub(total)}</div></div>
-    <div class="metric"><div class="metric-label">${T('orders')}</div><div class="metric-val">${analyticsData.length}</div></div>
+  <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <div class="metric"><div class="metric-label">${T('revenue')}</div><div class="metric-val" style="font-size:20px;color:var(--gold)">${fmtRub(total)}</div></div>
+    <div class="metric"><div class="metric-label">${T('orders')}</div><div class="metric-val" style="font-size:20px">${analyticsData.length}</div></div>
   </div>
-  <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-    <div class="metric"><div class="metric-label">💵 ${T('cash')}</div><div class="metric-val" style="font-size:15px">${fmtRub(cash)}</div></div>
-    <div class="metric"><div class="metric-label">💳 ${T('card')}</div><div class="metric-val" style="font-size:15px">${fmtRub(card)}</div></div>
+  <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+    <div class="metric"><div class="metric-label">💵 ${T('cash')}</div><div class="metric-val" style="font-size:16px">${fmtRub(cash)}</div></div>
+    <div class="metric"><div class="metric-label">💳 ${T('card')}</div><div class="metric-val" style="font-size:16px">${fmtRub(card)}</div></div>
   </div>
   <div class="card">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('salesByWaiter')}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">${T('salesByWaiter')}</div>
     ${Object.entries(byWaiter).map(([name,sales])=>`
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div><div style="font-size:14px">👤 ${name}</div><div style="font-size:12px;color:var(--muted)">${fmtRub(sales)}</div></div>
-      <div style="text-align:right"><div style="font-size:14px;color:var(--green)">${fmtRub(sales*0.025)}</div><div style="font-size:11px;color:var(--muted)">2,5%</div></div>
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div><div style="font-size:14px;font-weight:500">👤 ${name}</div><div style="font-size:12px;color:var(--muted)">${fmtRub(sales)}</div></div>
+      <div style="text-align:right"><div style="font-size:14px;font-weight:600;color:var(--green)">${fmtRub(sales*0.025)}</div><div style="font-size:11px;color:var(--muted)">2,5%</div></div>
     </div>`).join('')}
   </div>
-  <div style="margin-bottom:14px">
+  <div style="margin-bottom:16px">
     <button class="btn btn-outline-gold btn-sm" onclick="exportCSV()" style="width:100%">↓ CSV</button>
   </div>
   <div class="card">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${lang==='ru'?'Последние платежи':'Recent payments'}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">${lang==='ru'?'Последние платежи':'Recent payments'}</div>
     ${analyticsData.slice(0,10).map(p=>`
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
       <div>
-        <div>${T('table')} №${p.table_id} · ${p.waiters?.name||'?'}</div>
+        <div style="font-weight:500">${T('table')} №${p.table_id} · ${p.waiters?.name||'?'}</div>
         <div style="color:var(--muted)">${new Date(p.paid_at).toLocaleString()}</div>
       </div>
       <div style="text-align:right">
-        <div style="color:var(--gold)">${p.total_final} ₽</div>
+        <div style="color:var(--gold);font-weight:600">${p.total_final} ₽</div>
         <div style="color:var(--muted)">${p.payment_method==='cash'?'💵':'💳'}${p.discount>0?' -'+p.discount+'%':''}</div>
       </div>
     </div>`).join('')}
   </div>`;
 }
 
-// ── Action handlers ──
+// Action handlers
 function setTab(t){ tab=t; selTable=null; addingTo=null; расчётTable=null; billTable=null; tableDetailId=null; if(t==='bron') bronTab='list'; renderMain(); }
 function setViewMode(m){ viewMode=m; selTable=null; renderContent(); }
 function selTableClick(id){ selTable = selTable===id ? null : id; renderContent(); }
 function startAddOrder(id){ addingTo=id; menuSearch=''; renderContent(); }
 function setAddingTo(v){ addingTo=v; renderContent(); }
-function setMenuSearch(v){ menuSearch=v; renderContent(); }
 function setMenuCat(v){ menuCat=v; renderContent(); }
 function startRaschet(id){ расчётTable=id; selTable=null; renderContent(); }
 function setRaschet(v){ расчётTable=v; renderContent(); }
@@ -1027,8 +1663,7 @@ function closeTableDetail(){ tableDetailId=null; renderContent(); }
 function setTableDetailTab(t){ tableDetailTab=t; renderContent(); }
 function setBronTab(t){ bronTab=t; renderContent(); }
 function setBronTableId(id){ bronTableId=id; renderContent(); }
-function setSearchBron(v){ searchBron=v; renderContent(); }
-function startNewBron(id){ bronTableId=id; bronForm={name:'',phone:'',guests:'2',time:'19:00',note:''}; tab='bron'; bronTab='new'; renderMain(); }
+function startNewBron(id){ bronTableId=id; bronForm={name:'', phone:'', guests:'2', time:'19:00', note:''}; tab='bron'; bronTab='new'; renderMain(); }
 function doLogout(){ waiter=null; screen='login'; if(subTables) sb.removeChannel(subTables); render(); }
 
 function setAnalyticsPreset(p){
@@ -1061,17 +1696,24 @@ async function doAddOrder(id,ru,en,price,cat){
   const item={id,ru,en,price,cat};
   const t=tables.find(t=>t.id===addingTo);
   const ex=t?.orders?.find(o=>o.item_id===id);
-  if(ex){ await sb.from('orders').update({qty:ex.qty+1}).eq('id',ex.id); await sb.from('tables').update({status:'occupied',waiter_id:waiter.id}).eq('id',addingTo); }
-  else { await dbAddOrder(addingTo,item,cat); }
-  await loadTables(); renderContent();
+  if(ex){ 
+    await sb.from('orders').update({qty:ex.qty+1}).eq('id',ex.id); 
+    await sb.from('tables').update({status:'occupied', waiter_id:waiter.id}).eq('id',addingTo); 
+  } else { 
+    await dbAddOrder(addingTo,item,cat); 
+  }
+  await loadTables(); 
+  renderContent();
 }
 
 async function doRemoveOrder(orderId,tableId){
-  await dbRemoveOrder(orderId,tableId); renderContent();
+  await dbRemoveOrder(orderId,tableId); 
+  renderContent();
 }
 
 async function doSetDiscount(tableId,pct){
-  await dbSetDiscount(tableId,pct===tables.find(t=>t.id===tableId)?.discount?0:pct); renderContent();
+  await dbSetDiscount(tableId, pct===tables.find(t=>t.id===tableId)?.discount?0:pct); 
+  renderContent();
 }
 
 async function doConfirmPay(){
@@ -1079,7 +1721,7 @@ async function doConfirmPay(){
   const t=tables.find(t=>t.id===billTable);
   const raw=tableTotal(t,false), disc=tableTotal(t,true);
   const given=parseFloat(cashGiven)||0, chg=given-disc;
-  if(payMethod==='cash'&&given<disc) return;
+  if(payMethod==='cash' && given<disc) return;
   await dbConfirmPay(billTable,payMethod,raw,disc,t.discount,given,chg);
   toast(lang==='ru'?'✅ Стол закрыт':'✅ Table closed');
   billTable=null; payMethod=null; cashGiven=''; selTable=null; tab='tables';
@@ -1092,14 +1734,18 @@ async function doSaveBronFromForm(){
   const guests = document.getElementById('bron-guests')?.value;
   const time = document.getElementById('bron-time')?.value;
   const note = document.getElementById('bron-note')?.value;
+  
   if(!name){ toast(lang==='ru'?'⚠️ Введите имя гостя':'⚠️ Enter guest name'); return; }
   if(!bronTableId){ toast(lang==='ru'?'⚠️ Выберите стол':'⚠️ Select a table'); return; }
+  
   try {
     await dbSaveBron(bronTableId, {name, phone, guests, time, note});
-    bronForm={name:'',phone:'',guests:'2',time:'19:00',note:''};
-    bronTableId=null; bronTab='list';
+    bronForm={name:'', phone:'', guests:'2', time:'19:00', note:''};
+    bronTableId=null; 
+    bronTab='list';
     toast(lang==='ru'?'✅ Бронь сохранена':'✅ Booking saved');
-    tab='bron'; renderMain();
+    tab='bron'; 
+    renderMain();
   } catch(e){
     toast('❌ Error: '+e.message);
   }
@@ -1107,8 +1753,11 @@ async function doSaveBronFromForm(){
 
 async function doOpenTable(id){
   await dbOpenTable(id);
-  toast(lang==='ru'?'✅ Стол открыт':'✅ Table opened');
-  tableDetailId=null; renderContent();
+  toast(lang==='ru'?'✅ Стол открыт, можно принимать заказ':'✅ Table opened, you can take orders');
+  tableDetailId=null;
+  // Auto redirect to add order
+  addingTo = id;
+  renderContent();
 }
 
 async function doCancelBron(bronId,tableId){
