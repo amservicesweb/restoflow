@@ -12,6 +12,8 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%230a0a0a'/><text y='68' x='50' text-anchor='middle' font-size='60' font-family='Arial' font-weight='bold' fill='%23C9A84C'>S</text></svg>"/>
 <meta name="apple-mobile-web-app-title" content="Supernova"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   * {
     box-sizing: border-box;
@@ -44,7 +46,6 @@
     --pink: #C0395A;
     --shadow: 0 4px 12px rgba(0,0,0,0.3);
     --transition: all 0.2s ease;
-    --neon-glow: 0 0 10px rgba(201,168,76,0.5), 0 0 20px rgba(201,168,76,0.3);
   }
   
   input, button {
@@ -690,7 +691,7 @@
     transform: scale(0.95);
   }
   
-  /* Time row - égal */
+  /* Equal row */
   .equal-row {
     display: flex;
     gap: 12px;
@@ -717,6 +718,37 @@
   .stats-table th {
     color: var(--gold);
     font-weight: 600;
+  }
+  
+  /* Quantity controls */
+  .qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .qty-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--gold);
+  }
+  
+  .qty-btn:active {
+    transform: scale(0.95);
+  }
+  
+  .qty-value {
+    font-size: 16px;
+    font-weight: 600;
+    min-width: 30px;
+    text-align: center;
   }
   
   /* RestoFlow branding */
@@ -747,14 +779,57 @@
     animation: fadeIn 0.3s ease;
   }
   
-  /* 3D Neon Text */
-  .neon-3d {
-    font-family: 'Segoe UI', sans-serif;
-    font-weight: 900;
-    font-size: 18px;
-    letter-spacing: 3px;
-    fill: var(--gold);
-    filter: drop-shadow(0 0 5px rgba(201,168,76,0.5)) drop-shadow(0 0 10px rgba(201,168,76,0.3));
+  /* Confirm dialog */
+  .confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .confirm-dialog {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 24px;
+    width: 280px;
+    text-align: center;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  
+  .confirm-dialog p {
+    margin-bottom: 20px;
+    font-size: 16px;
+  }
+  
+  .confirm-buttons {
+    display: flex;
+    gap: 12px;
+  }
+  
+  .confirm-buttons button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    font-weight: 600;
+  }
+  
+  .confirm-yes {
+    background: var(--red);
+    color: white;
+  }
+  
+  .confirm-no {
+    background: var(--surface2);
+    color: var(--text);
   }
 </style>
 </head>
@@ -799,6 +874,19 @@ let analyticsFrom = '';
 let analyticsTo = '';
 let analyticsData = null;
 
+// Load saved preferences from localStorage
+function loadPreferences() {
+  const savedLang = localStorage.getItem('supernova_lang');
+  const savedViewMode = localStorage.getItem('supernova_viewMode');
+  if (savedLang && (savedLang === 'ru' || savedLang === 'en')) lang = savedLang;
+  if (savedViewMode && (savedViewMode === 'schema' || savedViewMode === 'list')) viewMode = savedViewMode;
+}
+
+function savePreferences() {
+  localStorage.setItem('supernova_lang', lang);
+  localStorage.setItem('supernova_viewMode', viewMode);
+}
+
 // Format rubles
 const fmtRub = n => Math.round(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
 
@@ -828,7 +916,6 @@ function formatPhoneRussian(input) {
 function isWorkingHours(timeStr) {
   const [hours, minutes] = timeStr.split(':').map(Number);
   const totalMinutes = hours * 60 + minutes;
-  // Working from 12:00 (720 min) to 03:00 next day (180 min)
   if (totalMinutes >= 720 || totalMinutes <= 180) return true;
   return false;
 }
@@ -842,6 +929,28 @@ async function checkDoubleBooking(tableId, date, time) {
     .eq('arrival_date', date)
     .eq('arrival_time', time);
   return existingBrons && existingBrons.length > 0;
+}
+
+// Show confirm dialog
+function showConfirm(message, onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  overlay.innerHTML = `
+    <div class="confirm-dialog">
+      <p>${message}</p>
+      <div class="confirm-buttons">
+        <button class="confirm-yes">${lang === 'ru' ? 'Да' : 'Yes'}</button>
+        <button class="confirm-no">${lang === 'ru' ? 'Нет' : 'No'}</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  
+  overlay.querySelector('.confirm-yes').onclick = () => {
+    overlay.remove();
+    onConfirm();
+  };
+  overlay.querySelector('.confirm-no').onclick = () => overlay.remove();
 }
 
 // Menu data
@@ -948,12 +1057,14 @@ const T = k => lang === 'ru' ? ({
   cashReceived:'Купюра клиента (₽)', liveStatus:'Сейчас в зале',
   busy:'Занято', freeCount:'Свободно', reserved2:'Бронь',
   salesByWaiter:'Продажи по официантам', bonus:'Бонус 2,5%',
-  exportCSV:'Экспорт CSV', from:'С', to:'По', applyDiscount:'Применить скидку?',
+  exportCSV:'Экспорт CSV', exportPDF:'Экспорт PDF',
+  from:'С', to:'По', applyDiscount:'Применить скидку?',
   discNote:'(не распространяется на кальяны)',
   open:'Открыть', late:'Ожидаем', openCount:'Открыто', newCount:'Новые',
   noAnalytics:'Нет аналитики за выбранный период', time:'Время', date:'Дата',
   avgCheck:'Средний чек', checksCount:'Кол-во чеков',
   revenueByWaiter:'Выручка по официантам', totalRevenue:'Общая выручка',
+  confirmDelete:'Удалить этот заказ?', confirmCancelBron:'Отменить эту бронь?',
 }[k]||k) : ({
   tables:'Tables', bron:'Bookings', analytics:'Analytics',
   free:'Free', occupied:'Busy', reserved:'Reserved',
@@ -974,12 +1085,14 @@ const T = k => lang === 'ru' ? ({
   cashReceived:'Cash received (₽)', liveStatus:'Live status',
   busy:'Busy', freeCount:'Free', reserved2:'Reserved',
   salesByWaiter:'Sales per waiter', bonus:'Bonus 2.5%',
-  exportCSV:'Export CSV', from:'From', to:'To', applyDiscount:'Apply discount?',
+  exportCSV:'Export CSV', exportPDF:'Export PDF',
+  from:'From', to:'To', applyDiscount:'Apply discount?',
   discNote:'(not applicable to hookahs)',
   open:'Open', late:'Late', openCount:'Open', newCount:'New',
   noAnalytics:'No analytics for selected period', time:'Time', date:'Date',
   avgCheck:'Average check', checksCount:'Number of checks',
   revenueByWaiter:'Revenue by waiter', totalRevenue:'Total revenue',
+  confirmDelete:'Delete this order?', confirmCancelBron:'Cancel this booking?',
 }[k]||k);
 
 const toast = (msg, dur=2500) => {
@@ -1039,6 +1152,15 @@ async function dbAddOrder(tableId, item, cat) {
   });
   await sb.from('tables').update({status:'occupied', waiter_id:waiter.id}).eq('id',tableId);
   await loadTables();
+}
+
+async function dbUpdateOrderQty(orderId, newQty, tableId) {
+  if (newQty <= 0) {
+    await dbRemoveOrder(orderId, tableId);
+  } else {
+    await sb.from('orders').update({qty:newQty}).eq('id',orderId);
+    await loadTables();
+  }
 }
 
 async function dbRemoveOrder(orderId, tableId) {
@@ -1106,6 +1228,84 @@ async function loadAnalytics(from, to) {
   renderAnalytics();
 }
 
+function exportToCSV() {
+  if(!analyticsData || analyticsData.length===0) {
+    toast(lang==='ru'?'Нет данных для экспорта':'No data to export');
+    return;
+  }
+  
+  const headers = ['Date', 'Table', 'Waiter', 'Total', 'Discount', 'Method'];
+  const rows = analyticsData.map(p => [
+    new Date(p.paid_at).toLocaleString(),
+    p.table_id,
+    p.waiters?.name || 'Unknown',
+    p.total_final,
+    p.discount + '%',
+    p.payment_method === 'cash' ? 'Cash' : 'Card'
+  ]);
+  
+  const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+  const blob = new Blob(["\uFEFF" + csvContent], {type: 'text/csv;charset=utf-8;'});
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.href = url;
+  link.setAttribute('download', `supernova_analytics_${analyticsFrom}_${analyticsTo}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  toast(lang==='ru'?'✅ CSV экспортирован':'✅ CSV exported');
+}
+
+async function exportToPDF() {
+  if(!analyticsData || analyticsData.length===0) {
+    toast(lang==='ru'?'Нет данных для экспорта':'No data to export');
+    return;
+  }
+  
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  
+  const total = analyticsData.reduce((s,p)=>s+p.total_final,0);
+  const avgCheck = total / analyticsData.length;
+  
+  doc.setFontSize(18);
+  doc.text('SUPERNOVA Lounge Bar', 105, 20, { align: 'center' });
+  doc.setFontSize(10);
+  doc.text(`${T('period')}: ${formatDateRussian(analyticsFrom)} - ${formatDateRussian(analyticsTo)}`, 105, 30, { align: 'center' });
+  
+  doc.setFontSize(12);
+  doc.text(`${T('totalRevenue')}: ${fmtRub(total)}`, 20, 45);
+  doc.text(`${T('checksCount')}: ${analyticsData.length}`, 20, 55);
+  doc.text(`${T('avgCheck')}: ${fmtRub(avgCheck)}`, 20, 65);
+  
+  doc.text(`${T('salesByWaiter')}:`, 20, 80);
+  const byWaiter = {};
+  analyticsData.forEach(p => {
+    const name = p.waiters?.name || 'Unknown';
+    byWaiter[name] = (byWaiter[name] || 0) + p.total_final;
+  });
+  let y = 90;
+  for (const [name, sales] of Object.entries(byWaiter)) {
+    doc.text(`  ${name}: ${fmtRub(sales)}`, 20, y);
+    y += 8;
+  }
+  
+  doc.text(`${lang==='ru'?'Последние платежи':'Recent payments'}:`, 20, y + 10);
+  y += 20;
+  analyticsData.slice(0, 15).forEach(p => {
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
+    doc.text(`${T('table')} ${p.table_id} | ${p.total_final} ₽ | ${p.payment_method==='cash'?'💵':'💳'} | ${p.waiters?.name||'?'}`, 20, y);
+    y += 7;
+  });
+  
+  doc.save(`supernova_report_${analyticsFrom}_${analyticsTo}.pdf`);
+  toast(lang==='ru'?'✅ PDF экспортирован':'✅ PDF exported');
+}
+
 function exportDetailedStats() {
   if(!analyticsData || analyticsData.length===0) {
     toast(lang==='ru'?'Нет данных для экспорта':'No data to export');
@@ -1121,7 +1321,7 @@ function exportDetailedStats() {
     byWaiter[name] = (byWaiter[name] || 0) + p.total_final;
   });
   
-  let report = `=== SUPERNOUA LOUNGE BAR ===\n`;
+  let report = `=== SUPERNOVA LOUNGE BAR ===\n`;
   report += `${T('period')}: ${formatDateRussian(analyticsFrom)} - ${formatDateRussian(analyticsTo)}\n`;
   report += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   report += `${T('totalRevenue')}: ${fmtRub(total)}\n`;
@@ -1211,7 +1411,11 @@ async function doLogin() {
   }
 }
 
-function toggleLang(){ lang=lang==='ru'?'en':'ru'; render(); }
+function toggleLang(){ 
+  lang=lang==='ru'?'en':'ru'; 
+  savePreferences();
+  render(); 
+}
 
 function logoSVG(size=26) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 100 100">
@@ -1332,9 +1536,9 @@ function renderFloorPlan() {
     return `<g onclick="selTableClick(${tc.id})" style="cursor:pointer">${sofasSVG}${shadow}${tableShape}${label}${sub}</g>`;
   }).join('');
 
-  // 3D Neon Text "СУПЕРНОВА" au milieu
+  // 3D Neon Text "СУПЕРНОВА" vertical (rotated)
   const neonText = `
-    <text x="182" y="195" text-anchor="middle" font-size="16" font-weight="900" fill="var(--gold)" font-family="Segoe UI, sans-serif" letter-spacing="3" filter="url(#glow)">
+    <text x="182" y="195" text-anchor="middle" font-size="16" font-weight="900" fill="var(--gold)" font-family="Segoe UI, sans-serif" letter-spacing="3" transform="rotate(-90,182,195)" filter="url(#glow)">
       СУПЕРНОВА
     </text>
     <defs>
@@ -1398,7 +1602,7 @@ function renderTablePopup() {
   </div>`;
 }
 
-// Add Order
+// Add Order with quantity editing
 function renderAddOrder(c) {
   const t=tables.find(t=>t.id===addingTo)||{orders:[],discount:0};
   const items = menuSearch
@@ -1430,16 +1634,30 @@ function renderAddOrder(c) {
     <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('orders')}</div>
     ${t.orders.map(o=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-      <span style="font-size:13px">${lang==='ru'?o.item_name_ru:o.item_name_en} × ${o.qty}</span>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:14px;color:var(--gold);font-weight:600">${o.price*o.qty} ₽</span>
-        <button onclick="doRemoveOrder('${o.id}',${addingTo})" style="background:none;border:1px solid var(--border);border-radius:8px;width:28px;height:28px;font-size:16px;color:var(--red);cursor:pointer;transition:var(--transition)">−</button>
+      <span style="font-size:13px">${lang==='ru'?o.item_name_ru:o.item_name_en}</span>
+      <div class="qty-controls">
+        <button class="qty-btn" onclick="updateOrderQty('${o.id}', ${o.qty-1}, ${addingTo})">−</button>
+        <span class="qty-value">${o.qty}</span>
+        <button class="qty-btn" onclick="updateOrderQty('${o.id}', ${o.qty+1}, ${addingTo})">+</button>
+        <span style="font-size:14px;color:var(--gold);font-weight:600;min-width:70px;text-align:right">${o.price*o.qty} ₽</span>
       </div>
     </div>`).join('')}
     <div style="display:flex;justify-content:space-between;margin-top:10px;font-weight:700;font-size:16px">
       <span>${T('total')}</span><span style="color:var(--gold)">${tableTotal(t)} ₽</span>
     </div>
   </div>`:''}`;
+}
+
+async function updateOrderQty(orderId, newQty, tableId) {
+  if (newQty <= 0) {
+    showConfirm(T('confirmDelete'), async () => {
+      await dbUpdateOrderQty(orderId, 0, tableId);
+      renderContent();
+    });
+  } else {
+    await dbUpdateOrderQty(orderId, newQty, tableId);
+    renderContent();
+  }
 }
 
 function handleMenuSearch(value) {
@@ -1566,11 +1784,15 @@ function renderTableDetail(c) {
       ${b.note?`<div style="font-size:12px;color:var(--muted);margin-top:6px;font-style:italic">${b.note}</div>`:''}
       <div style="display:flex;gap:10px;margin-top:12px">
         <button class="btn btn-green btn-sm" onclick="doOpenTable(${tableDetailId})">${T('open')}</button>
-        <button class="btn btn-outline-red btn-sm" onclick="doCancelBron('${b.id}',${tableDetailId})">✕ ${T('cancelBron')}</button>
+        <button class="btn btn-outline-red btn-sm" onclick="showConfirmCancelBron('${b.id}',${tableDetailId})">✕ ${T('cancelBron')}</button>
       </div>
     </div>`).join('')}
     <button class="btn btn-pink" onclick="startNewBron(${tableDetailId})">+ ${T('newBron')}</button>
   `}`;
+}
+
+function showConfirmCancelBron(bronId, tableId) {
+  showConfirm(T('confirmCancelBron'), () => doCancelBron(bronId, tableId));
 }
 
 // Bron
@@ -1603,7 +1825,7 @@ function renderBron(c) {
     ${b.note?`<div style="font-size:12px;color:var(--muted);margin-top:6px;font-style:italic">${b.note}</div>`:''}
     <div style="display:flex;gap:10px;margin-top:12px">
       <button class="btn btn-green btn-sm" onclick="doOpenTable(${b.tableId})">${T('open')}</button>
-      <button class="btn btn-outline-red btn-sm" onclick="doCancelBron('${b.id}',${b.tableId})">✕ ${T('cancelBron')}</button>
+      <button class="btn btn-outline-red btn-sm" onclick="showConfirmCancelBron('${b.id}',${b.tableId})">✕ ${T('cancelBron')}</button>
     </div>
   </div>`).join('')}
   <div class="bron-counters">
@@ -1731,7 +1953,7 @@ function renderAnalytics() {
       <thead><tr><th>${lang==='ru'?'Официант':'Waiter'}</th><th>${T('revenue')}</th><th>${T('bonus')}</th></tr></thead>
       <tbody>
         ${Object.entries(byWaiter).map(([name,sales])=>`
-        <tr><td>👤 ${name}</td><td style="color:var(--gold);font-weight:600">${fmtRub(sales)}</td><td style="color:var(--green)">${fmtRub(sales*0.025)}</td></tr>
+        <tr><td>👤 ${name}</td><td style="color:var(--gold);font-weight:600">${fmtRub(sales)}</td><td style="color:var(--green)">${fmtRub(sales*0.025)}</td>
         `).join('')}
       </tbody>
     </table>
@@ -1745,8 +1967,9 @@ function renderAnalytics() {
     </div>
   </div>
   
-  <div style="margin-bottom:16px">
-    <button class="btn btn-outline-gold" onclick="exportDetailedStats()" style="width:100%">📄 ${lang==='ru'?'Экспорт детального отчёта':'Export detailed report'}</button>
+  <div style="display:flex;gap:10px;margin-bottom:16px">
+    <button class="btn btn-outline-gold" onclick="exportToCSV()" style="flex:1">📄 ${T('exportCSV')}</button>
+    <button class="btn btn-outline-gold" onclick="exportToPDF()" style="flex:1">📑 ${T('exportPDF')}</button>
   </div>
   
   <div class="card">
@@ -1766,8 +1989,24 @@ function renderAnalytics() {
 }
 
 // Action handlers
-function setTab(t){ tab=t; selTable=null; addingTo=null; расчётTable=null; billTable=null; tableDetailId=null; if(t==='bron') bronTab='list'; renderMain(); }
-function setViewMode(m){ viewMode=m; selTable=null; renderContent(); }
+function setTab(t){ 
+  tab=t; 
+  selTable=null; 
+  addingTo=null; 
+  расчётTable=null; 
+  billTable=null; 
+  tableDetailId=null; 
+  if(t==='bron') bronTab='list'; 
+  renderMain(); 
+}
+
+function setViewMode(m){ 
+  viewMode=m; 
+  savePreferences();
+  selTable=null; 
+  renderContent(); 
+}
+
 function selTableClick(id){ selTable = selTable===id ? null : id; renderContent(); }
 function startAddOrder(id){ addingTo=id; menuSearch=''; renderContent(); }
 function setAddingTo(v){ addingTo=v; renderContent(); }
@@ -1861,13 +2100,11 @@ async function doSaveBronFromForm(){
   if(!date){ toast(lang==='ru'?'⚠️ Выберите дату':'⚠️ Select date'); return; }
   if(!time){ toast(lang==='ru'?'⚠️ Выберите время':'⚠️ Select time'); return; }
   
-  // Check working hours
   if(!isWorkingHours(time)){
     toast(lang==='ru'?'❌ Ресторан работает с 12:00 до 03:00':'❌ Restaurant works from 12:00 to 03:00');
     return;
   }
   
-  // Check double booking
   const isDouble = await checkDoubleBooking(bronTableId, date, time);
   if(isDouble){
     toast(lang==='ru'?'❌ На эту таблицу уже есть бронь на это время':'❌ This table is already booked for this time');
@@ -1901,7 +2138,8 @@ async function doCancelBron(bronId,tableId){
   renderContent();
 }
 
-// Initialize
+// Load preferences and initialize
+loadPreferences();
 render();
 </script>
 </body>
