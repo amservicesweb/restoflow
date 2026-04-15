@@ -2,159 +2,803 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="theme-color" content="#0E0E0E"/>
-<title>Supernova Lounge Bar</title>
+<meta name="theme-color" content="#0A0A0A"/>
+<title>Supernova Lounge Bar | Premium Management</title>
 <link rel="manifest" href="manifest.json"/>
-<!-- Favicon SVG inline -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%230a0a0a'/><text y='68' x='50' text-anchor='middle' font-size='60' font-family='Arial' font-weight='bold' fill='%23C9A84C'>S</text></svg>"/>
-<!-- Apple touch icon -->
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%230a0a0a'/><text y='68' x='50' text-anchor='middle' font-size='60' font-family='Arial' font-weight='bold' fill='%23C9A84C'>S</text></svg>"/>
 <meta name="apple-mobile-web-app-title" content="Supernova"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  body{background:#0E0E0E;color:#F5F0E8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:430px;margin:0 auto;min-height:100vh}
-  :root{
-    --gold:#C9A84C;--dark:#0E0E0E;--surface:#1A1A1A;--surface2:#242424;
-    --border:#2E2E2E;--text:#F5F0E8;--muted:#888;--green:#2ECC71;
-    --red:#E74C3C;--pink:#C0395A;
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
   }
-  input,button{font-family:inherit;outline:none}
-  button{cursor:pointer}
-
+  
+  body {
+    background: radial-gradient(circle at 20% 30%, #0F0F0F, #050505);
+    color: #F5EFE6;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Text', system-ui, sans-serif;
+    max-width: 500px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    position: relative;
+  }
+  
+  :root {
+    --gold: #D4AF37;
+    --gold-light: #F5E6A3;
+    --gold-dark: #B8960C;
+    --dark: #0A0A0A;
+    --surface: rgba(26, 26, 30, 0.7);
+    --surface2: rgba(36, 36, 40, 0.8);
+    --border: rgba(255,255,255,0.1);
+    --text: #F5EFE6;
+    --text-secondary: #A0A0B0;
+    --green: #2ECC71;
+    --green-dark: #27AE60;
+    --red: #E74C3C;
+    --pink: #E84393;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --shadow-gold: 0 0 20px rgba(212,175,55,0.3);
+  }
+  
+  input, button, select, textarea {
+    font-family: inherit;
+    outline: none;
+  }
+  
+  button {
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  button:active {
+    transform: scale(0.97);
+  }
+  
+  /* Mobile responsive */
+  @media (max-width: 480px) {
+    .content {
+      padding: 12px;
+      padding-bottom: 80px;
+    }
+    .card {
+      padding: 14px;
+    }
+    .nav-btn {
+      padding: 8px 2px;
+      font-size: 10px;
+    }
+    .nav-btn .nav-icon {
+      font-size: 20px;
+    }
+    .hdr {
+      padding: 10px 12px;
+    }
+    .table-buttons {
+      gap: 8px;
+    }
+    .table-btn {
+      padding: 8px 14px;
+      font-size: 12px;
+    }
+    .cat-btn {
+      padding: 6px 12px;
+      font-size: 11px;
+    }
+  }
+  
   /* Header */
-  .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-  .logo-wrap{display:flex;align-items:center;gap:8px}
-  .logo-text{font-size:12px;font-weight:700;color:var(--gold);letter-spacing:1px}
-  .logo-sub{font-size:9px;color:var(--muted)}
-  .hdr-right{display:flex;gap:6px;align-items:center}
-  .waiter-badge{font-size:11px;color:var(--muted)}
-  .lang-btn,.icon-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:12px}
-  .icon-btn{color:var(--red)}
-
-  /* Nav */
-  .nav{display:flex;background:var(--surface);border-top:1px solid var(--border);position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:100}
-  .nav-btn{flex:1;padding:10px 4px;background:none;border:none;color:var(--muted);font-size:11px;border-top:2px solid transparent;transition:color .2s}
-  .nav-btn.active{color:var(--gold);border-top-color:var(--gold)}
-  .nav-btn .nav-icon{font-size:20px;display:block}
-
-  /* Content */
-  .content{padding:14px;padding-bottom:80px}
-
-  /* Cards */
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
-
-  /* Buttons */
-  .btn{border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:500;width:100%;display:block;text-align:center;margin-bottom:8px}
-  .btn-gold{background:var(--gold);color:#000}
-  .btn-pink{background:var(--pink);color:#fff}
-  .btn-green{background:var(--green);color:#fff}
-  .btn-outline{background:none;border:1px solid var(--border);color:var(--text)}
-  .btn-outline-red{background:none;border:1px solid var(--red);color:var(--red)}
-  .btn-outline-gold{background:none;border:1px solid var(--gold);color:var(--gold);background:var(--surface2)}
-  .btn-sm{padding:6px 10px;font-size:12px;border-radius:7px;width:auto;flex:1}
-
-  /* Input */
-  .inp{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:15px;color:var(--text);width:100%}
-  .inp:focus{border-color:var(--gold)}
-  .lbl{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
-
-  /* Toggle */
-  .toggle{display:flex;gap:8px;margin-bottom:14px}
-  .toggle-btn{flex:1;padding:8px;border-radius:8px;border:none;font-size:13px;cursor:pointer}
-  .toggle-btn.active{background:var(--gold);color:#000}
-  .toggle-btn:not(.active){background:var(--surface2);color:var(--muted)}
-
-  /* Status badge */
-  .badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
-  .badge-occupied{background:#2A2000;color:var(--gold)}
-  .badge-reserved{background:#2A0010;color:var(--pink)}
-  .badge-free{background:#0A1A0A;color:var(--green)}
-
+  .hdr {
+    background: rgba(10, 10, 12, 0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding-top: max(14px, env(safe-area-inset-top));
+  }
+  
+  .logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-gold);
+  }
+  
+  .logo-text {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--gold);
+    letter-spacing: 2px;
+  }
+  
+  .logo-sub {
+    font-size: 9px;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+  }
+  
+  .hdr-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  
+  .waiter-badge {
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: rgba(255,255,255,0.08);
+    padding: 6px 12px;
+    border-radius: 40px;
+    font-weight: 500;
+  }
+  
+  .lang-btn, .icon-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 40px;
+    padding: 6px 14px;
+    font-size: 12px;
+  }
+  
+  .nav {
+    display: flex;
+    background: rgba(10, 10, 12, 0.9);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 500px;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .nav-btn {
+    flex: 1;
+    padding: 12px 6px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 11px;
+    border-top: 2px solid transparent;
+    font-weight: 500;
+  }
+  
+  .nav-btn.active {
+    color: var(--gold);
+    border-top-color: var(--gold);
+  }
+  
+  .nav-btn .nav-icon {
+    font-size: 22px;
+    display: block;
+    margin-bottom: 4px;
+  }
+  
+  .content {
+    padding: 20px 16px;
+    padding-bottom: 85px;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .card {
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  
+  .btn {
+    border: none;
+    border-radius: 40px;
+    padding: 14px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    width: 100%;
+    display: block;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+    color: #0A0A0A;
+    box-shadow: 0 4px 15px rgba(212,175,55,0.3);
+  }
+  
+  .btn-pink {
+    background: linear-gradient(135deg, #C0395A, var(--pink));
+    color: #fff;
+  }
+  
+  .btn-green {
+    background: linear-gradient(135deg, var(--green-dark), var(--green));
+    color: #fff;
+  }
+  
+  .btn-outline {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  
+  .btn-outline-red {
+    background: rgba(231,76,60,0.15);
+    border: 1px solid var(--red);
+    color: var(--red);
+  }
+  
+  .btn-sm {
+    padding: 10px 16px;
+    font-size: 12px;
+    width: auto;
+    flex: 1;
+  }
+  
+  .inp {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    font-size: 15px;
+    color: var(--text);
+    width: 100%;
+  }
+  
+  .inp:focus {
+    border-color: var(--gold);
+    background: rgba(255,255,255,0.08);
+  }
+  
+  .lbl {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    display: block;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+  
+  .toggle {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .toggle-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 40px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  
+  .toggle-btn.active {
+    background: var(--gold);
+    color: #0A0A0A;
+  }
+  
+  .toggle-btn:not(.active) {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+  }
+  
+  .badge {
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 40px;
+    font-weight: 600;
+  }
+  
+  .badge-occupied {
+    background: rgba(212,175,55,0.2);
+    color: var(--gold);
+  }
+  
+  .badge-reserved {
+    background: rgba(232,67,147,0.2);
+    color: var(--pink);
+  }
+  
+  .badge-free {
+    background: rgba(46,204,113,0.2);
+    color: var(--green);
+  }
+  
   /* Login */
-  .login-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px}
-  .pin-dots{display:flex;gap:14px;margin-bottom:36px}
-  .pin-dot{width:13px;height:13px;border-radius:50%;background:var(--border);transition:background .15s}
-  .pin-dot.filled{background:var(--gold)}
-  .pin-dot.error{background:var(--red)}
-  .pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:260px}
-  .pin-btn{background:rgba(255,255,255,0.08);border:none;border-radius:50%;width:72px;height:72px;font-size:24px;font-weight:500;color:var(--text);margin:0 auto;display:flex;align-items:center;justify-content:center}
-  .pin-btn:active{background:rgba(255,255,255,0.16)}
-  .pin-btn.del{background:none;font-size:22px;color:var(--muted)}
-
+  .login-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    padding: 20px;
+    background: radial-gradient(circle at 30% 20%, #1A1A2E, #0A0A0A);
+  }
+  
+  .pin-dots {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  
+  .pin-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+  
+  .pin-dot.filled {
+    background: var(--gold);
+    box-shadow: 0 0 8px var(--gold);
+  }
+  
+  .pin-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 280px;
+  }
+  
+  .pin-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    border-radius: 60px;
+    width: 80px;
+    height: 80px;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .pin-btn.del {
+    background: rgba(231,76,60,0.15);
+    color: var(--red);
+  }
+  
   /* Floor plan */
-  #floor-svg{width:100%;max-width:360px;display:block;margin:0 auto}
-
-  /* Metric */
-  .metric{background:var(--surface2);border-radius:10px;padding:12px 14px;flex:1;text-align:center}
-  .metric-label{font-size:11px;color:var(--muted);margin-bottom:4px}
-  .metric-val{font-size:22px;font-weight:500}
-
-  /* Search */
-  .search-wrap{position:relative;flex:1}
-  .search-wrap .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px}
-  .search-wrap .inp{padding-left:36px}
-
-  /* Toast */
-  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
-  .toast.show{opacity:1}
-
-  /* Loader */
-  .loader{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--muted);font-size:14px}
-
-  /* Discount buttons */
-  .disc-btn{padding:8px 16px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);color:var(--muted);font-size:15px;font-weight:500;cursor:pointer}
-  .disc-btn.active{border-color:var(--gold);background:#1A1500;color:var(--gold)}
-
-  /* Receipt */
-  .receipt{background:#fff;color:#000;border-radius:12px;padding:20px;font-family:monospace;max-width:320px;margin:0 auto 18px}
-  .receipt-title{font-size:18px;font-weight:700;text-align:center}
-  .receipt-sub{font-size:10px;color:#555;letter-spacing:2px;text-align:center}
-  .receipt-divider{border-top:1px dashed #ccc;margin:10px 0}
-  .receipt-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
-  .receipt-total{display:flex;justify-content:space-between;font-weight:700;font-size:16px;margin-top:4px}
-
-  /* Pay method */
-  .pay-btn{flex:1;padding:12px;border-radius:10px;border:2px solid var(--border);background:var(--surface);color:var(--muted);font-size:14px;cursor:pointer}
-  .pay-btn.active{border-color:var(--gold);background:#1A1500;color:var(--gold)}
-
-  /* Change display */
-  .change-box{display:flex;justify-content:space-between;background:#0A1A0A;border-radius:8px;padding:10px 14px;margin-top:8px}
-
-  /* Scrollable cats */
-  .cat-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
-  .cat-scroll::-webkit-scrollbar{display:none}
-  .cat-btn{flex-shrink:0;padding:7px 12px;border-radius:8px;border:none;font-size:12px;cursor:pointer}
-  .cat-btn.active{background:var(--gold);color:#000}
-  .cat-btn:not(.active){background:var(--surface2);color:var(--muted)}
-
-  /* Bron counters */
-  .bron-counters{display:flex;gap:10px;border-top:1px solid var(--border);padding-top:12px;margin-top:12px}
-  .bron-counter{flex:1;text-align:center}
-  .bron-counter-label{font-size:11px}
-  .bron-counter-val{font-size:18px;font-weight:500}
-
-  /* Analytics export */
-  .date-range{display:flex;gap:10px;margin-bottom:14px}
-  .date-range .inp{font-size:13px;padding:8px 10px}
-
-  /* Date time row */
-  .dt-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-  .dt-row .inp{font-size:14px;padding:10px 8px}
-
-  /* Phone input */
-  .phone-inp{letter-spacing:1px}
-
-  /* RestoFlow branding */
-  .restoflow{position:fixed;bottom:12px;left:0;right:0;text-align:center;font-size:10px;color:#444;letter-spacing:1px;pointer-events:none}
-  .restoflow span{color:#C9A84C;font-weight:500}
-
-  /* 3D Floor plan */
-  #floor-svg{width:100%;max-width:390px;display:block;margin:0 auto}
-  .floor-container{background:linear-gradient(160deg,#181818,#111);border-radius:16px;padding:8px;border:1px solid #2E2E2E}
+  .floor-container {
+    background: linear-gradient(135deg, #111115, #0A0A0E);
+    border-radius: 28px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  
+  #floor-svg {
+    width: 100%;
+    max-width: 380px;
+    display: block;
+    margin: 0 auto;
+  }
+  
+  .metric {
+    background: rgba(255,255,255,0.05);
+    border-radius: 20px;
+    padding: 16px;
+    flex: 1;
+    text-align: center;
+  }
+  
+  .metric-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  
+  .metric-val {
+    font-size: 26px;
+    font-weight: 800;
+  }
+  
+  .search-wrap {
+    position: relative;
+    flex: 1;
+  }
+  
+  .search-wrap .search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: var(--text-secondary);
+  }
+  
+  .search-wrap .inp {
+    padding-left: 48px;
+  }
+  
+  .toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.9);
+    backdrop-filter: blur(20px);
+    color: var(--gold);
+    padding: 14px 28px;
+    border-radius: 60px;
+    font-size: 13px;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+    border: 1px solid var(--gold);
+  }
+  
+  .toast.show {
+    opacity: 1;
+  }
+  
+  .cat-scroll {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+  
+  .cat-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .cat-btn {
+    flex-shrink: 0;
+    padding: 10px 18px;
+    border-radius: 40px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+  
+  .cat-btn.active {
+    background: var(--gold);
+    color: #0A0A0A;
+  }
+  
+  .qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .qty-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    border-radius: 40px;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+    color: var(--gold);
+  }
+  
+  .qty-value {
+    font-size: 16px;
+    font-weight: 600;
+    min-width: 36px;
+    text-align: center;
+  }
+  
+  .date-range {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .date-item {
+    flex: 1;
+    min-width: 130px;
+  }
+  
+  .table-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .table-btn {
+    padding: 12px 20px;
+    border-radius: 40px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  
+  .table-btn.active {
+    border-color: var(--pink);
+    background: rgba(232,67,147,0.2);
+    color: var(--pink);
+  }
+  
+  .stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  
+  .stats-table th, .stats-table td {
+    padding: 10px 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .stats-table th {
+    color: var(--gold);
+  }
+  
+  .confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .confirm-dialog {
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border-radius: 32px;
+    padding: 28px;
+    width: 300px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  
+  .confirm-dialog p {
+    margin-bottom: 24px;
+    font-size: 16px;
+  }
+  
+  .confirm-buttons {
+    display: flex;
+    gap: 14px;
+  }
+  
+  .confirm-buttons button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 40px;
+    border: none;
+    font-weight: 600;
+  }
+  
+  .confirm-yes {
+    background: var(--red);
+    color: white;
+  }
+  
+  .confirm-no {
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+  }
+  
+  /* Receipt styles */
+  .receipt {
+    background: white;
+    color: black;
+    border-radius: 16px;
+    padding: 20px;
+    font-family: 'Courier New', monospace;
+    max-width: 300px;
+    margin: 0 auto 20px;
+  }
+  
+  .receipt-header {
+    text-align: center;
+    margin-bottom: 16px;
+    border-bottom: 1px dashed #ccc;
+    padding-bottom: 12px;
+  }
+  
+  .receipt-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 2px;
+  }
+  
+  .receipt-address {
+    font-size: 9px;
+    color: #555;
+    margin-top: 4px;
+  }
+  
+  .receipt-phone {
+    font-size: 10px;
+    color: #777;
+  }
+  
+  .receipt-sub {
+    font-size: 10px;
+    color: #888;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  
+  .receipt-divider {
+    border-top: 1px dashed #ccc;
+    margin: 10px 0;
+  }
+  
+  .receipt-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+  
+  .receipt-total {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 800;
+    font-size: 14px;
+    margin-top: 8px;
+  }
+  
+  .print-btn {
+    background: var(--gold);
+    color: #0A0A0A;
+    padding: 12px;
+    border-radius: 40px;
+    border: none;
+    font-weight: 600;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .disc-btn {
+    padding: 10px 18px;
+    border-radius: 40px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+  
+  .disc-btn.active {
+    border-color: var(--gold);
+    background: rgba(212,175,55,0.2);
+    color: var(--gold);
+  }
+  
+  .pay-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 40px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  
+  .pay-btn.active {
+    border-color: var(--gold);
+    background: rgba(212,175,55,0.2);
+    color: var(--gold);
+  }
+  
+  .change-box {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(46,204,113,0.1);
+    border-radius: 16px;
+    padding: 14px 18px;
+    margin-top: 12px;
+  }
+  
+  .bron-counters {
+    display: flex;
+    gap: 12px;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-top: 16px;
+  }
+  
+  .bron-counter {
+    flex: 1;
+    text-align: center;
+  }
+  
+  .bron-counter-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  
+  .bron-counter-val {
+    font-size: 22px;
+    font-weight: 700;
+  }
+  
+  .restoflow {
+    position: fixed;
+    bottom: 16px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 9px;
+    color: #333;
+    pointer-events: none;
+    z-index: 200;
+  }
+  
+  .restoflow span {
+    color: var(--gold);
+  }
+  
+  /* Client suggestions */
+  .suggestions-list {
+    position: absolute;
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    max-height: 150px;
+    overflow-y: auto;
+    width: 100%;
+    z-index: 100;
+  }
+  
+  .suggestion-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .suggestion-item:hover {
+    background: rgba(212,175,55,0.1);
+  }
 </style>
 </head>
 <body>
@@ -163,133 +807,330 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ===== CONFIGURATION =====
 const { createClient } = supabase;
 const sb = createClient(
   'https://ljkwjvhffrmhbagkdwrz.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqa3dqdmhmZnJtaGJhZ2tkd3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NjE5MzMsImV4cCI6MjA5MTEzNzkzM30.BN8jM6D0fDvTftJptmjqeEnqJ5z1UuN7oQykaxKeFj0'
 );
 
-// ── State ──
+// ===== BAR INFO =====
+const BAR_INFO = {
+  name: 'SUPERNOVA LOUNGE BAR',
+  address: 'Проспект Дзержинского, 190а',
+  phone: '+7 988 500-16-00',
+  taxId: 'ИНН 1234567890'
+};
+
+// ===== STATE =====
+let isLoading = false;
 let lang = 'ru';
-let screen = 'login'; // login | main
+let screen = 'login';
 let waiter = null;
 let tables = [];
 let tab = 'tables';
 let viewMode = 'schema';
 let selTable = null;
 let subTables = null;
+let clients = [];
 
-// Menu search
-let menuSearch = '';
+let menuSearchTemp = '';
+let menuSearchTimeout = null;
 let menuCat = 'shisha';
 let addingTo = null;
 
-// Payment flow
 let расчётTable = null;
 let billTable = null;
 let payMethod = null;
 let cashGiven = '';
-
-// Bron
-let bronTab = 'list'; // list | new
+let bronTab = 'list';
 let bronTableId = null;
-let bronForm = {name:'',phone:'',guests:'2',time:'19:00',note:''};
+let bronForm = {name:'', phone:'', guests:'2', date:'', time:'19:00', note:''};
 let searchBron = '';
-
-// Table detail
+let searchBronTemp = '';
+let searchBronTimeout = null;
 let tableDetailId = null;
 let tableDetailTab = 'info';
-
-// Analytics
 let analyticsTab = 'today';
 let analyticsFrom = '';
 let analyticsTo = '';
 let analyticsData = null;
 
-// ── Menu data ──
+// Client suggestions
+let clientSuggestions = [];
+let showSuggestions = false;
+
+// ===== HELPER FUNCTIONS =====
+const fmtRub = n => Math.round(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
+
+function formatDateRussian(dateStr) {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  return `${day}.${month}.${year}`;
+}
+
+function formatPhoneForDisplay(phone) {
+  if (!phone) return '';
+  let v = phone.replace(/\D/g, '');
+  if (v.startsWith('8')) v = '7' + v.slice(1);
+  if (!v.startsWith('7')) v = '7' + v;
+  v = v.slice(0, 11);
+  let f = '+7';
+  if (v.length > 1) f += ' ' + v.slice(1, 4);
+  if (v.length > 4) f += ' ' + v.slice(4, 7);
+  if (v.length > 7) f += ' ' + v.slice(7, 9);
+  if (v.length > 9) f += ' ' + v.slice(9, 11);
+  return f;
+}
+
+function formatPhoneForDB(phone) {
+  if (!phone) return '';
+  return phone.replace(/\D/g, '');
+}
+
+function isWorkingHours(timeStr) {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const totalMinutes = hours * 60 + minutes;
+  return totalMinutes >= 720 || totalMinutes <= 180;
+}
+
+function showConfirm(message, onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  overlay.innerHTML = `
+    <div class="confirm-dialog">
+      <p>${message}</p>
+      <div class="confirm-buttons">
+        <button class="confirm-yes">${lang === 'ru' ? 'Да' : 'Yes'}</button>
+        <button class="confirm-no">${lang === 'ru' ? 'Нет' : 'No'}</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector('.confirm-yes').onclick = () => { overlay.remove(); onConfirm(); };
+  overlay.querySelector('.confirm-no').onclick = () => overlay.remove();
+}
+
+function loadPreferences() {
+  const savedLang = localStorage.getItem('supernova_lang');
+  if (savedLang && (savedLang === 'ru' || savedLang === 'en')) lang = savedLang;
+}
+
+function savePreferences() {
+  localStorage.setItem('supernova_lang', lang);
+}
+
+const toast = (msg, dur=2500) => {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+};
+
+const tableTotal = (t, withDisc=false) => {
+  if(!t || !t.orders) return 0;
+  const raw = (t.orders||[]).reduce((s,o)=>s+o.price*o.qty,0);
+  if(!withDisc||!t.discount) return raw;
+  const discItems = (t.orders||[]).filter(o=>o.category !== 'shisha');
+  const discTotal = discItems.reduce((s,o)=>s+o.price*o.qty,0);
+  return Math.round((raw-discTotal)+discTotal*(1-t.discount/100));
+};
+
+const statusColor = s => s==='occupied'?'var(--gold)':s==='reserved'?'var(--pink)':'var(--green)';
+const statusBadge = s => `<span class="badge badge-${s}">${s==='occupied'?'Занят':s==='reserved'?'Забронирован':'Свободен'}</span>`;
+
+const $ = id => document.getElementById(id);
+
+// ===== CRM FUNCTIONS =====
+async function loadClients() {
+  try {
+    const {data} = await sb.from('clients').select('*').order('created_at', {ascending: false});
+    if(data) clients = data;
+  } catch (error) {
+    console.error('Erreur chargement clients:', error);
+  }
+}
+
+async function searchClients(query) {
+  if (!query || query.length < 2) {
+    clientSuggestions = [];
+    showSuggestions = false;
+    return;
+  }
+  
+  const cleanQuery = query.toLowerCase();
+  clientSuggestions = clients.filter(c => 
+    c.name?.toLowerCase().includes(cleanQuery) || 
+    c.phone?.includes(cleanQuery)
+  ).slice(0, 5);
+  
+  showSuggestions = clientSuggestions.length > 0;
+  renderNewBronSuggestions();
+}
+
+function selectClientSuggestion(client) {
+  bronForm.name = client.name || '';
+  bronForm.phone = client.phone || '';
+  showSuggestions = false;
+  renderNewBron();
+}
+
+function renderNewBronSuggestions() {
+  const container = document.getElementById('suggestions-container');
+  if (!container) return;
+  
+  if (showSuggestions && clientSuggestions.length > 0) {
+    container.innerHTML = `
+      <div class="suggestions-list">
+        ${clientSuggestions.map(c => `
+          <div class="suggestion-item" onclick="selectClientSuggestion(${JSON.stringify(c).replace(/"/g, '&quot;')})">
+            <div style="font-weight:600">${c.name || 'Без имени'}</div>
+            <div style="font-size:11px;color:var(--text-secondary)">${c.phone || ''}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else {
+    container.innerHTML = '';
+  }
+}
+
+async function addClientAuto(name, phone) {
+  if (!phone || phone.length < 5) return null;
+  
+  const cleanPhone = formatPhoneForDB(phone);
+  
+  try {
+    const {data: existing} = await sb.from('clients').select('*').eq('phone', cleanPhone);
+    
+    if (existing && existing.length > 0) {
+      await sb.from('clients').update({
+        last_visit: new Date().toISOString()
+      }).eq('id', existing[0].id);
+      return existing[0];
+    }
+    
+    const {data: newClient} = await sb.from('clients').insert({
+      name: name || 'Client',
+      phone: cleanPhone,
+      visits: 0,
+      total_spent: 0,
+      last_visit: new Date().toISOString()
+    }).select();
+    
+    if (newClient && newClient[0]) {
+      toast(lang === 'ru' ? '✅ Новый клиент добавлен' : '✅ New client added');
+      return newClient[0];
+    }
+  } catch (error) {
+    console.error('Erreur ajout client:', error);
+  }
+  return null;
+}
+
+async function updateClientStats(phone, amount) {
+  if (!phone) return;
+  
+  const cleanPhone = formatPhoneForDB(phone);
+  
+  try {
+    const {data: client} = await sb.from('clients').select('*').eq('phone', cleanPhone);
+    if (client && client.length > 0) {
+      const c = client[0];
+      await sb.from('clients').update({
+        visits: (c.visits || 0) + 1,
+        total_spent: (c.total_spent || 0) + amount,
+        last_visit: new Date().toISOString()
+      }).eq('id', c.id);
+    }
+  } catch (error) {
+    console.error('Erreur mise à jour stats client:', error);
+  }
+}
+
+// ===== MENU DATA =====
 const MENU = {
   shisha:[
-    {id:'s1',ru:'Классич. кальян (12-17ч)',en:'Classic Hookah (12-17h)',price:1000},
-    {id:'s2',ru:'Премиум кальян (12-17ч)',en:'Premium Hookah (12-17h)',price:1150},
-    {id:'s3',ru:'Классич. кальян (с 17ч)',en:'Classic Hookah (17h+)',price:1500},
-    {id:'s4',ru:'Премиум кальян (с 17ч)',en:'Premium Hookah (17h+)',price:1650},
-    {id:'s5',ru:'Замена чаши (классич.)',en:'Bowl change (Classic)',price:1000},
-    {id:'s6',ru:'Замена чаши (премиум)',en:'Bowl change (Premium)',price:1150},
+    {id:'s1',ru:'Классич. кальян (12-17ч)',en:'Classic Hookah (12-17h)',price:1000,category:'shisha'},
+    {id:'s2',ru:'Премиум кальян (12-17ч)',en:'Premium Hookah (12-17h)',price:1150,category:'shisha'},
+    {id:'s3',ru:'Классич. кальян (с 17ч)',en:'Classic Hookah (17h+)',price:1500,category:'shisha'},
+    {id:'s4',ru:'Премиум кальян (с 17ч)',en:'Premium Hookah (17h+)',price:1650,category:'shisha'},
+    {id:'s5',ru:'Замена чаши (классич.)',en:'Bowl change (Classic)',price:1000,category:'shisha'},
+    {id:'s6',ru:'Замена чаши (премиум)',en:'Bowl change (Premium)',price:1150,category:'shisha'},
   ],
   beer:[
-    {id:'b1',ru:'Лагер 0,33 л',en:'Lager 0.33L',price:320},
-    {id:'b2',ru:'Лагер 0,5 л',en:'Lager 0.5L',price:400},
-    {id:'b3',ru:'Корона 0,33 л',en:'Corona 0.33L',price:350},
-    {id:'b4',ru:'Крон Бланш',en:'Kron Blansh',price:280},
-    {id:'b5',ru:'Шпатен',en:'Spaten',price:300},
-    {id:'b6',ru:'Эфес',en:'Efes',price:300},
-    {id:'b7',ru:'Тёмное',en:'Dark Beer',price:350},
+    {id:'b1',ru:'Лагер 0,33 л',en:'Lager 0.33L',price:320,category:'beer'},
+    {id:'b2',ru:'Лагер 0,5 л',en:'Lager 0.5L',price:400,category:'beer'},
+    {id:'b3',ru:'Корона 0,33 л',en:'Corona 0.33L',price:350,category:'beer'},
+    {id:'b4',ru:'Крон Бланш',en:'Kron Blansh',price:280,category:'beer'},
+    {id:'b5',ru:'Шпатен',en:'Spaten',price:300,category:'beer'},
+    {id:'b6',ru:'Эфес',en:'Efes',price:300,category:'beer'},
+    {id:'b7',ru:'Тёмное',en:'Dark Beer',price:350,category:'beer'},
   ],
   lemonade:[
-    {id:'l1',ru:'Клубника-Лимон 0,4л',en:'Strawberry-Lemon 0.4L',price:390},
-    {id:'l2',ru:'Клубника-Фейхоа 0,4л',en:'Strawberry-Feijoa 0.4L',price:450},
-    {id:'l3',ru:'Манго-Маракуйя 0,4л',en:'Mango-Passion 0.4L',price:400},
-    {id:'l4',ru:'Цитрусовый микс 0,4л',en:'Citrus Mix 0.4L',price:390},
-    {id:'l5',ru:'Малина-Личи 0,4л',en:'Raspberry-Lychee 0.4L',price:430},
-    {id:'l6',ru:'Манго-Маракуйя 1л',en:'Mango-Passion 1L',price:820},
-    {id:'l7',ru:'Клубника-Фейхоа 1л',en:'Strawberry-Feijoa 1L',price:850},
-    {id:'l8',ru:'Цитрусовый микс 1л',en:'Citrus Mix 1L',price:770},
-    {id:'l9',ru:'Манго-Личи 1л',en:'Mango-Lychee 1L',price:850},
-    {id:'l10',ru:'Ягодное комбо 1л',en:'Berry Combo 1L',price:770},
+    {id:'l1',ru:'Клубника-Лимон 0,4л',en:'Strawberry-Lemon 0.4L',price:390,category:'lemonade'},
+    {id:'l2',ru:'Клубника-Фейхоа 0,4л',en:'Strawberry-Feijoa 0.4L',price:450,category:'lemonade'},
+    {id:'l3',ru:'Манго-Маракуйя 0,4л',en:'Mango-Passion 0.4L',price:400,category:'lemonade'},
+    {id:'l4',ru:'Цитрусовый микс 0,4л',en:'Citrus Mix 0.4L',price:390,category:'lemonade'},
+    {id:'l5',ru:'Малина-Личи 0,4л',en:'Raspberry-Lychee 0.4L',price:430,category:'lemonade'},
+    {id:'l6',ru:'Манго-Маракуйя 1л',en:'Mango-Passion 1L',price:820,category:'lemonade'},
+    {id:'l7',ru:'Клубника-Фейхоа 1л',en:'Strawberry-Feijoa 1L',price:850,category:'lemonade'},
+    {id:'l8',ru:'Цитрусовый микс 1л',en:'Citrus Mix 1L',price:770,category:'lemonade'},
+    {id:'l9',ru:'Манго-Личи 1л',en:'Mango-Lychee 1L',price:850,category:'lemonade'},
+    {id:'l10',ru:'Ягодное комбо 1л',en:'Berry Combo 1L',price:770,category:'lemonade'},
   ],
   drinks:[
-    {id:'d1',ru:'Кока-Кола 0,33',en:'Coca-Cola 0.33',price:280},
-    {id:'d2',ru:'Кока-Кола (Добрый)',en:'Coca-Cola (Dobry)',price:200},
-    {id:'d3',ru:'Лимон-Лайм',en:'Lemon-Lime',price:200},
-    {id:'d4',ru:'Добрый Апельсин',en:'Dobry Orange',price:200},
-    {id:'d5',ru:'Сок 0,2л',en:'Juice 0.2L',price:220},
-    {id:'d6',ru:'Сок 1л',en:'Juice 1L',price:450},
-    {id:'d7',ru:'Вода Джермук',en:'Water Jermuk',price:260},
-    {id:'d8',ru:'Вода 0,33л',en:'Water 0.33L',price:200},
-    {id:'d9',ru:'Энергетик BURN',en:'Energy BURN',price:220},
-    {id:'d10',ru:'Энергетик Red Bull',en:'Energy Red Bull',price:350},
+    {id:'d1',ru:'Кока-Кола 0,33',en:'Coca-Cola 0.33',price:280,category:'drinks'},
+    {id:'d2',ru:'Кока-Кола (Добрый)',en:'Coca-Cola (Dobry)',price:200,category:'drinks'},
+    {id:'d3',ru:'Лимон-Лайм',en:'Lemon-Lime',price:200,category:'drinks'},
+    {id:'d4',ru:'Добрый Апельсин',en:'Dobry Orange',price:200,category:'drinks'},
+    {id:'d5',ru:'Сок 0,2л',en:'Juice 0.2L',price:220,category:'drinks'},
+    {id:'d6',ru:'Сок 1л',en:'Juice 1L',price:450,category:'drinks'},
+    {id:'d7',ru:'Вода Джермук',en:'Water Jermuk',price:260,category:'drinks'},
+    {id:'d8',ru:'Вода 0,33л',en:'Water 0.33L',price:200,category:'drinks'},
+    {id:'d9',ru:'Энергетик BURN',en:'Energy BURN',price:220,category:'drinks'},
+    {id:'d10',ru:'Энергетик Red Bull',en:'Energy Red Bull',price:350,category:'drinks'},
   ],
   coffee:[
-    {id:'c1',ru:'Эспрессо',en:'Espresso',price:190},
-    {id:'c2',ru:'Американо',en:'Americano',price:220},
-    {id:'c3',ru:'Капучино S',en:'Cappuccino S',price:230},
-    {id:'c4',ru:'Капучино L',en:'Cappuccino L',price:260},
-    {id:'c5',ru:'Латте',en:'Latte',price:300},
-    {id:'c6',ru:'Ассам 0,5л',en:'Assam 0.5L',price:430},
-    {id:'c7',ru:'Ассам 1л',en:'Assam 1L',price:550},
-    {id:'c8',ru:'Эл Грей 0,5л',en:'Earl Grey 0.5L',price:430},
-    {id:'c9',ru:'Эл Грей 1л',en:'Earl Grey 1L',price:550},
-    {id:'c10',ru:'Сенча 0,5л',en:'Sencha 0.5L',price:430},
-    {id:'c11',ru:'Жасмин 0,5л',en:'Jasmine 0.5L',price:430},
-    {id:'c12',ru:'Травяной 0,5л',en:'Herbal 0.5L',price:430},
-    {id:'c13',ru:'Травяной 1л',en:'Herbal 1L',price:600},
-    {id:'c14',ru:'Лимон-Имбирь-Мёд 1л',en:'Lemon-Ginger-Honey 1L',price:750},
-    {id:'c15',ru:'Груша-Специи 1л',en:'Pear-Spices 1L',price:720},
-    {id:'c16',ru:'Облепиха-Апельсин 1л',en:'Buckthorn-Orange 1L',price:790},
-    {id:'c17',ru:'Ягодный чай 1л',en:'Berry Tea 1L',price:790},
-    {id:'c18',ru:'Китайский чай проливом',en:'Chinese Tea',price:800},
-    {id:'c19',ru:'Добавки к чаю',en:'Tea extras',price:80},
+    {id:'c1',ru:'Эспрессо',en:'Espresso',price:190,category:'coffee'},
+    {id:'c2',ru:'Американо',en:'Americano',price:220,category:'coffee'},
+    {id:'c3',ru:'Капучино S',en:'Cappuccino S',price:230,category:'coffee'},
+    {id:'c4',ru:'Капучино L',en:'Cappuccino L',price:260,category:'coffee'},
+    {id:'c5',ru:'Латте',en:'Latte',price:300,category:'coffee'},
+    {id:'c6',ru:'Ассам 0,5л',en:'Assam 0.5L',price:430,category:'coffee'},
+    {id:'c7',ru:'Ассам 1л',en:'Assam 1L',price:550,category:'coffee'},
+    {id:'c8',ru:'Эл Грей 0,5л',en:'Earl Grey 0.5L',price:430,category:'coffee'},
+    {id:'c9',ru:'Эл Грей 1л',en:'Earl Grey 1L',price:550,category:'coffee'},
+    {id:'c10',ru:'Сенча 0,5л',en:'Sencha 0.5L',price:430,category:'coffee'},
+    {id:'c11',ru:'Жасмин 0,5л',en:'Jasmine 0.5L',price:430,category:'coffee'},
+    {id:'c12',ru:'Травяной 0,5л',en:'Herbal 0.5L',price:430,category:'coffee'},
+    {id:'c13',ru:'Травяной 1л',en:'Herbal 1L',price:600,category:'coffee'},
+    {id:'c14',ru:'Лимон-Имбирь-Мёд 1л',en:'Lemon-Ginger-Honey 1L',price:750,category:'coffee'},
+    {id:'c15',ru:'Груша-Специи 1л',en:'Pear-Spices 1L',price:720,category:'coffee'},
+    {id:'c16',ru:'Облепиха-Апельсин 1л',en:'Buckthorn-Orange 1L',price:790,category:'coffee'},
+    {id:'c17',ru:'Ягодный чай 1л',en:'Berry Tea 1L',price:790,category:'coffee'},
+    {id:'c18',ru:'Китайский чай проливом',en:'Chinese Tea',price:800,category:'coffee'},
+    {id:'c19',ru:'Добавки к чаю',en:'Tea extras',price:80,category:'coffee'},
   ],
   snacks:[
-    {id:'n1',ru:'Сет солёный S',en:'Salty Set S',price:630},
-    {id:'n2',ru:'Сет солёный M',en:'Salty Set M',price:910},
-    {id:'n3',ru:'Сет фруктовый S',en:'Fruit Set S',price:580},
-    {id:'n4',ru:'Сет фруктовый M',en:'Fruit Set M',price:750},
+    {id:'n1',ru:'Сет солёный S',en:'Salty Set S',price:630,category:'snacks'},
+    {id:'n2',ru:'Сет солёный M',en:'Salty Set M',price:910,category:'snacks'},
+    {id:'n3',ru:'Сет фруктовый S',en:'Fruit Set S',price:580,category:'snacks'},
+    {id:'n4',ru:'Сет фруктовый M',en:'Fruit Set M',price:750,category:'snacks'},
   ],
 };
-const MENU_CATS = [
-  {k:'shisha',  ru:'🪔 Кальяны',  en:'🪔 Shisha'},
-  {k:'beer',    ru:'🍺 Пиво',     en:'🍺 Beer'},
-  {k:'lemonade',ru:'🍹 Лимонады',en:'🍹 Lemonade'},
-  {k:'drinks',  ru:'🥤 Напитки',  en:'🥤 Drinks'},
-  {k:'coffee',  ru:'☕ Кофе/Чай', en:'☕ Coffee/Tea'},
-  {k:'snacks',  ru:'🥜 Закуски',  en:'🥜 Snacks'},
-];
-const NO_DISC = ['shisha'];
-const DISCOUNTS = [10,15,20,30,50];
 
-// ── Helpers ──
-const $ = id => document.getElementById(id);
+const MENU_CATS = [
+  {k:'shisha', ru:'🪔 Кальяны', en:'🪔 Shisha'},
+  {k:'beer', ru:'🍺 Пиво', en:'🍺 Beer'},
+  {k:'lemonade', ru:'🍹 Лимонады', en:'🍹 Lemonade'},
+  {k:'drinks', ru:'🥤 Напитки', en:'🥤 Drinks'},
+  {k:'coffee', ru:'☕ Кофе/Чай', en:'☕ Coffee/Tea'},
+  {k:'snacks', ru:'🥜 Закуски', en:'🥜 Snacks'},
+];
+
+// ===== TRANSLATIONS =====
 const T = k => lang === 'ru' ? ({
   tables:'Столики', bron:'Бронь', analytics:'Аналитика',
   free:'Свободен', occupied:'Занят', reserved:'Забронирован',
@@ -314,6 +1155,12 @@ const T = k => lang === 'ru' ? ({
   from:'С', to:'По', applyDiscount:'Применить скидку?',
   discNote:'(не распространяется на кальяны)',
   open:'Открыть', late:'Ожидаем', openCount:'Открыто', newCount:'Новые',
+  noAnalytics:'Нет аналитики за выбранный период', time:'Время', date:'Дата',
+  avgCheck:'Средний чек', checksCount:'Кол-во чеков',
+  revenueByWaiter:'Выручка по официантам', totalRevenue:'Общая выручка',
+  confirmDelete:'Удалить этот заказ?', confirmCancelBron:'Отменить эту бронь?',
+  cashTotal:'Наличные', cardTotal:'Карта', transferTotal:'Перевод',
+  print:'Печать', close:'Закрыть'
 }[k]||k) : ({
   tables:'Tables', bron:'Bookings', analytics:'Analytics',
   free:'Free', occupied:'Busy', reserved:'Reserved',
@@ -338,166 +1185,409 @@ const T = k => lang === 'ru' ? ({
   from:'From', to:'To', applyDiscount:'Apply discount?',
   discNote:'(not applicable to hookahs)',
   open:'Open', late:'Late', openCount:'Open', newCount:'New',
+  noAnalytics:'No analytics for selected period', time:'Time', date:'Date',
+  avgCheck:'Average check', checksCount:'Number of checks',
+  revenueByWaiter:'Revenue by waiter', totalRevenue:'Total revenue',
+  confirmDelete:'Delete this order?', confirmCancelBron:'Cancel this booking?',
+  cashTotal:'Cash', cardTotal:'Card', transferTotal:'Transfer',
+  print:'Print', close:'Close'
 }[k]||k);
 
-const toast = (msg, dur=2500) => {
-  const el = $('toast'); el.textContent = msg; el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), dur);
-};
+// ===== PRINT FUNCTIONS =====
+function printReceipt(tableId, total, discount, orders, paymentMethod, change = null) {
+  const printWindow = window.open('', '_blank', 'width=300,height=600');
+  const now = new Date();
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Чек SUPERNOVA</title>
+      <style>
+        body {
+          font-family: 'Courier New', monospace;
+          width: 280px;
+          margin: 0 auto;
+          padding: 10px;
+          font-size: 12px;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 15px;
+          border-bottom: 1px dashed #000;
+          padding-bottom: 10px;
+        }
+        .title {
+          font-size: 16px;
+          font-weight: bold;
+          letter-spacing: 2px;
+        }
+        .address, .phone {
+          font-size: 9px;
+          color: #555;
+        }
+        .divider {
+          border-top: 1px dashed #000;
+          margin: 8px 0;
+        }
+        .row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 4px;
+        }
+        .total {
+          font-weight: bold;
+          font-size: 14px;
+          margin-top: 8px;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 15px;
+          font-size: 9px;
+          border-top: 1px dashed #000;
+          padding-top: 8px;
+        }
+        .thankyou {
+          font-size: 10px;
+          font-weight: bold;
+          margin-top: 10px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="title">${BAR_INFO.name}</div>
+        <div class="address">${BAR_INFO.address}</div>
+        <div class="phone">${BAR_INFO.phone}</div>
+        <div class="phone">${BAR_INFO.taxId}</div>
+      </div>
+      <div style="text-align:center; font-size:10px; margin-bottom:8px;">
+        ${T('table')} №${tableId} | ${now.toLocaleTimeString()} | ${now.toLocaleDateString()}
+      </div>
+      <div class="divider"></div>
+      ${orders.map(o => `
+        <div class="row">
+          <span>${o.item_name_ru} x${o.qty}</span>
+          <span>${o.price * o.qty} ₽</span>
+        </div>
+      `).join('')}
+      <div class="divider"></div>
+      ${discount > 0 ? `
+        <div class="row" style="color:#666">
+          <span>Скидка ${discount}%</span>
+          <span>-${Math.round(orders.reduce((s,o)=>s+o.price*o.qty,0) - total)} ₽</span>
+        </div>
+      ` : ''}
+      <div class="row total">
+        <span>ИТОГО</span>
+        <span>${total} ₽</span>
+      </div>
+      <div class="row">
+        <span>Оплата</span>
+        <span>${paymentMethod === 'cash' ? 'Наличные' : 'Карта'}</span>
+      </div>
+      ${paymentMethod === 'cash' && change !== null && change > 0 ? `
+        <div class="row">
+          <span>Сдача</span>
+          <span>${change} ₽</span>
+        </div>
+      ` : ''}
+      <div class="footer">
+        <div>Спасибо за визит!</div>
+        <div>Ждем вас снова</div>
+        <div class="thankyou">${now.toLocaleDateString()} ${now.toLocaleTimeString()}</div>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.print();
+}
 
-const tableTotal = (t, withDisc=false) => {
-  const raw = (t.orders||[]).reduce((s,o)=>s+o.price*o.qty,0);
-  if(!withDisc||!t.discount) return raw;
-  const disc = (t.orders||[]).filter(o=>!NO_DISC.includes(o.category)).reduce((s,o)=>s+o.price*o.qty,0);
-  return Math.round((raw-disc)+disc*(1-t.discount/100));
-};
+// ===== EXPORT CSV =====
+function exportToCSV() {
+  if(!analyticsData || analyticsData.length===0) {
+    toast(lang==='ru'?'Нет данных для экспорта':'No data to export');
+    return;
+  }
+  
+  // Headers
+  let csvRows = [];
+  csvRows.push([`"${BAR_INFO.name}"`]);
+  csvRows.push([`"${BAR_INFO.address}"`]);
+  csvRows.push([`"${BAR_INFO.phone}"`]);
+  csvRows.push([`"${BAR_INFO.taxId}"`]);
+  csvRows.push([]);
+  csvRows.push([`"Отчет за период: ${formatDateRussian(analyticsFrom)} - ${formatDateRussian(analyticsTo)}"`]);
+  csvRows.push([]);
+  csvRows.push(['"Дата"','"Время"','"Стол"','"Официант"','"Товар"','"Кол-во"','"Цена"','"Сумма"','"Оплата"','"Скидка"']);
+  
+  for (const payment of analyticsData) {
+    const {data: orders} = await sb.from('orders_history')
+      .select('*')
+      .eq('payment_id', payment.id);
+    
+    if (orders && orders.length > 0) {
+      for (const order of orders) {
+        const date = new Date(payment.paid_at);
+        csvRows.push([
+          `"${date.toLocaleDateString()}"`,
+          `"${date.toLocaleTimeString()}"`,
+          `"${payment.table_id}"`,
+          `"${payment.waiters?.name || '?'}"`,
+          `"${order.item_name_ru}"`,
+          `"${order.qty}"`,
+          `"${order.price}"`,
+          `"${order.total_price}"`,
+          `"${payment.payment_method === 'cash' ? 'Наличные' : 'Карта'}"`,
+          `"${payment.discount || 0}%"`
+        ]);
+      }
+    }
+  }
+  
+  // Totals row
+  const totalRevenue = analyticsData.reduce((s,p) => s + p.total_final, 0);
+  const cashTotal = analyticsData.filter(p => p.payment_method === 'cash').reduce((s,p) => s + p.total_final, 0);
+  const cardTotal = analyticsData.filter(p => p.payment_method === 'card').reduce((s,p) => s + p.total_final, 0);
+  
+  csvRows.push([]);
+  csvRows.push([`"ИТОГО ВЫРУЧКА: ${totalRevenue} ₽"`]);
+  csvRows.push([`"Наличные: ${cashTotal} ₽"`]);
+  csvRows.push([`"Карта: ${cardTotal} ₽"`]);
+  csvRows.push([`"Количество чеков: ${analyticsData.length}"`]);
+  csvRows.push([`"Средний чек: ${Math.round(totalRevenue/analyticsData.length)} ₽"`]);
+  
+  const csvContent = csvRows.map(row => row.join(';')).join('\n');
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.href = url;
+  link.setAttribute('download', `supernova_report_${analyticsFrom}_${analyticsTo}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  
+  toast(lang==='ru'?'✅ CSV exporté avec succès':'✅ CSV exported successfully');
+}
 
-const statusColor = s => s==='occupied'?'var(--gold)':s==='reserved'?'var(--pink)':'var(--green)';
-const statusBadge = s => `<span class="badge badge-${s}">${T(s==='occupied'?'occupied':s==='reserved'?'reserved':'free')}</span>`;
-
-// ── Supabase realtime ──
+// ===== SUPABASE FUNCTIONS =====
 async function loadTables() {
-  const {data} = await sb.from('tables').select('*, orders(*)').order('id');
-  if(data) {
-    // Attach brons
-    const {data:brons} = await sb.from('brons').select('*').eq('status','active');
-    tables = data.map(t => ({
-      ...t,
-      orders: t.orders||[],
-      brons: (brons||[]).filter(b=>b.table_id===t.id)
-    }));
-    render();
+  try {
+    const {data} = await sb.from('tables').select('*, orders(*)').order('id');
+    if(data) {
+      const {data:brons} = await sb.from('brons').select('*').eq('status','active');
+      tables = data.map(t => ({
+        ...t,
+        orders: t.orders||[],
+        brons: (brons||[]).filter(b=>b.table_id===t.id && b.status === 'active')
+      }));
+      render();
+    }
+  } catch (error) {
+    console.error('Erreur chargement tables:', error);
+    toast(lang === 'ru' ? 'Erreur chargement des tables' : 'Error loading tables');
   }
 }
 
 function subscribeRealtime() {
   subTables = sb.channel('tables-channel')
-    .on('postgres_changes',{event:'*',schema:'public'},(payload)=>{
-      loadTables();
-    }).subscribe();
+    .on('postgres_changes',{event:'*',schema:'public'},()=>{ loadTables(); })
+    .subscribe();
 }
 
-// ── Login ──
+// ===== LOGIN =====
 async function tryLogin(p) {
-  const {data:ws} = await sb.from('waiters').select('*').eq('pin',p).eq('is_active',true);
-  if(!ws||ws.length===0) return false;
-  waiter = ws[0];
-  return true;
+  try {
+    const {data:ws} = await sb.from('waiters').select('*').eq('pin',p).eq('is_active',true);
+    if(!ws||ws.length===0) return false;
+    waiter = ws[0];
+    return true;
+  } catch (error) {
+    console.error('Erreur login:', error);
+    return false;
+  }
 }
 
-// ── DB Actions ──
+// ===== DB ACTIONS =====
 async function dbAddOrder(tableId, item, cat) {
-  await sb.from('orders').insert({
-    table_id:tableId, waiter_id:waiter.id,
-    item_id:item.id, item_name_ru:item.ru, item_name_en:item.en,
-    category:cat, price:item.price, qty:1
-  });
-  await sb.from('tables').update({status:'occupied',waiter_id:waiter.id}).eq('id',tableId);
-  await loadTables();
+  try {
+    await sb.from('orders').insert({
+      table_id:tableId, waiter_id:waiter.id,
+      item_id:item.id, item_name_ru:item.ru, item_name_en:item.en,
+      category:cat, price:item.price, qty:1
+    });
+    await sb.from('tables').update({status:'occupied', waiter_id:waiter.id}).eq('id',tableId);
+    await loadTables();
+  } catch (error) {
+    console.error('Erreur ajout commande:', error);
+  }
+}
+
+async function dbUpdateOrderQty(orderId, newQty, tableId) {
+  try {
+    if (newQty <= 0) {
+      await dbRemoveOrder(orderId, tableId);
+    } else {
+      await sb.from('orders').update({qty:newQty}).eq('id',orderId);
+      await loadTables();
+    }
+  } catch (error) {
+    console.error('Erreur mise à jour quantité:', error);
+  }
 }
 
 async function dbRemoveOrder(orderId, tableId) {
-  await sb.from('orders').delete().eq('id',orderId);
-  const t = tables.find(t=>t.id===tableId);
-  const remaining = (t.orders||[]).filter(o=>o.id!==orderId);
-  if(remaining.length===0){
-    await sb.from('tables').update({status:'free',waiter_id:null,discount:0}).eq('id',tableId);
+  try {
+    await sb.from('orders').delete().eq('id',orderId);
+    
+    const {data: remainingOrders} = await sb.from('orders').select('id').eq('table_id', tableId);
+    
+    if(!remainingOrders || remainingOrders.length === 0){
+      await sb.from('tables').update({status:'free', waiter_id:null, discount:0}).eq('id',tableId);
+    }
+    
+    await loadTables();
+  } catch (error) {
+    console.error('Erreur suppression commande:', error);
   }
-  await loadTables();
 }
 
 async function dbSetDiscount(tableId, pct) {
-  await sb.from('tables').update({discount:pct}).eq('id',tableId);
-  await loadTables();
+  try {
+    await sb.from('tables').update({discount:pct}).eq('id',tableId);
+    await loadTables();
+  } catch (error) {
+    console.error('Erreur mise à jour remise:', error);
+  }
 }
 
-async function dbConfirmPay(tableId, method, raw, final, disc, given, chg) {
-  const t = tables.find(t=>t.id===tableId);
-  await sb.from('payments').insert({
-    table_id:tableId, waiter_id:t.waiter_id||waiter.id,
-    total_raw:raw, total_final:final, discount:disc,
-    payment_method:method,
-    cash_given:method==='cash'?given:null,
-    change_given:method==='cash'?chg:null
-  });
-  await sb.from('orders').delete().eq('table_id',tableId);
-  await sb.from('tables').update({status:'free',waiter_id:null,discount:0}).eq('id',tableId);
-  await loadTables();
+async function dbConfirmPay(tableId, method, raw, final, disc, given, chg, clientPhone) {
+  try {
+    const t = tables.find(t=>t.id===tableId);
+    if (!t) return;
+    
+    const {data: payment} = await sb.from('payments').insert({
+      table_id:tableId, waiter_id:t.waiter_id||waiter.id,
+      total_raw:raw, total_final:final, discount:disc,
+      payment_method:method,
+      cash_given:method==='cash'?given:null,
+      change_given:method==='cash'?chg:null,
+      client_phone: clientPhone ? formatPhoneForDB(clientPhone) : null
+    }).select();
+    
+    for (const order of t.orders || []) {
+      await sb.from('orders_history').insert({
+        table_id: tableId,
+        waiter_id: t.waiter_id || waiter.id,
+        item_name_ru: order.item_name_ru,
+        item_name_en: order.item_name_en,
+        price: order.price,
+        qty: order.qty,
+        total_price: order.price * order.qty,
+        payment_id: payment?.[0]?.id,
+        paid_at: new Date().toISOString()
+      });
+    }
+    
+    await sb.from('orders').delete().eq('table_id',tableId);
+    await sb.from('tables').update({status:'free', waiter_id:null, discount:0}).eq('id',tableId);
+    
+    if (clientPhone) {
+      await updateClientStats(clientPhone, final);
+    }
+    
+    // Print receipt
+    printReceipt(tableId, final, disc, t.orders, method, chg > 0 ? chg : null);
+    
+    await loadTables();
+  } catch (error) {
+    console.error('Erreur paiement:', error);
+    toast(lang === 'ru' ? 'Erreur lors du paiement' : 'Payment error');
+  }
 }
 
 async function dbSaveBron(tableId, form) {
-  await sb.from('brons').insert({
-    table_id:tableId, guest_name:form.name, guest_phone:form.phone,
-    guests_count:parseInt(form.guests)||1, arrival_time:form.time,
-    note:form.note, status:'active'
-  });
-  await sb.from('tables').update({status:'reserved'}).eq('id',tableId);
-  await loadTables();
+  try {
+    const {data: existing} = await sb.from('brons').select('*').eq('table_id',tableId).eq('status','active').eq('arrival_date',form.date).eq('arrival_time',form.time);
+    if (existing && existing.length > 0) {
+      throw new Error('Double booking');
+    }
+    
+    const cleanPhone = formatPhoneForDB(form.phone);
+    
+    await sb.from('brons').insert({
+      table_id:tableId, 
+      guest_name:form.name, 
+      guest_phone:cleanPhone,
+      guests_count:parseInt(form.guests)||1, 
+      arrival_date:form.date,
+      arrival_time:form.time, 
+      note:form.note, 
+      status:'active',
+      created_by: waiter.id
+    });
+    await sb.from('tables').update({status:'reserved'}).eq('id',tableId);
+    
+    if (cleanPhone && cleanPhone.length > 5) {
+      await addClientAuto(form.name, cleanPhone);
+    }
+    
+    await loadTables();
+  } catch (error) {
+    throw error;
+  }
 }
 
 async function dbOpenTable(tableId) {
-  await sb.from('brons').update({status:'opened'}).eq('table_id',tableId).eq('status','active');
-  await sb.from('tables').update({status:'occupied',waiter_id:waiter.id}).eq('id',tableId);
-  await loadTables();
+  try {
+    await sb.from('brons').update({status:'opened'}).eq('table_id',tableId).eq('status','active');
+    await sb.from('tables').update({status:'occupied', waiter_id:waiter.id}).eq('id',tableId);
+    await loadTables();
+  } catch (error) {
+    console.error('Erreur ouverture table:', error);
+  }
 }
 
 async function dbCancelBron(bronId, tableId) {
-  await sb.from('brons').update({status:'cancelled'}).eq('id',bronId);
-  const t = tables.find(t=>t.id===tableId);
-  const remaining = (t.brons||[]).filter(b=>b.id!==bronId);
-  if(remaining.length===0){
-    await sb.from('tables').update({status:'free'}).eq('id',tableId);
+  try {
+    await sb.from('brons').update({status:'cancelled'}).eq('id',bronId);
+    const t = tables.find(t=>t.id===tableId);
+    const remaining = (t.brons||[]).filter(b=>b.id!==bronId && b.status === 'active');
+    if(remaining.length===0){
+      await sb.from('tables').update({status:'free'}).eq('id',tableId);
+    }
+    await loadTables();
+  } catch (error) {
+    console.error('Erreur annulation réservation:', error);
   }
-  await loadTables();
 }
 
-async function loadAnalytics(from, to) {
-  const {data:payments} = await sb.from('payments')
-    .select('*, waiters(name)')
-    .gte('paid_at', from+'T00:00:00')
-    .lte('paid_at', to+'T23:59:59')
-    .order('paid_at',{ascending:false});
-  analyticsData = payments||[];
-  renderAnalytics();
-}
-
-function exportCSV() {
-  if(!analyticsData) return;
-  const rows = [['Date','Table','Waiter','Total','Discount','Method']];
-  analyticsData.forEach(p => {
-    rows.push([
-      new Date(p.paid_at).toLocaleString(),
-      p.table_id, p.waiters?.name||'',
-      p.total_final, p.discount+'%', p.payment_method
-    ]);
-  });
-  const csv = rows.map(r=>r.join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download = 'supernova_analytics.csv';
-  a.click();
-}
-
-// ── RENDER ──
+// ===== RENDER FUNCTIONS =====
 function render() {
   if(screen==='login'){ renderLogin(); return; }
   renderMain();
 }
 
 function renderLogin() {
+  document.body.style.overflow = 'hidden';
   $('app').innerHTML = `
   <div class="login-wrap">
-    <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:32px">
-      ${logoSVG(80)}
-      <div style="font-size:24px;font-weight:700;color:var(--gold);letter-spacing:3px;margin-top:12px">SUPERNOVA</div>
-      <div style="font-size:11px;color:var(--muted);letter-spacing:4px">LOUNGE BAR</div>
+    <div class="logo-icon" style="width:70px;height:70px;margin-bottom:20px">
+      ${logoSVG(60)}
     </div>
-    <div style="font-size:15px;color:var(--text);margin-bottom:20px">${lang==='ru'?'Введите PIN':'Enter PIN'}</div>
+    <div style="font-size:28px;font-weight:800;color:var(--gold);letter-spacing:4px;margin-bottom:8px">SUPERNOVA</div>
+    <div style="font-size:11px;color:var(--text-secondary);letter-spacing:5px;margin-bottom:40px">LOUNGE BAR</div>
+    <div style="font-size:14px;color:var(--text);margin-bottom:24px;font-weight:500">${lang==='ru'?'Введите PIN-код':'Enter PIN code'}</div>
     <div class="pin-dots">
       ${[0,1,2,3].map(i=>`<div class="pin-dot" id="dot${i}"></div>`).join('')}
     </div>
-    <div style="width:260px">
-      <div class="pin-grid" style="margin-bottom:14px">
+    <div style="width:280px">
+      <div class="pin-grid" style="margin-bottom:16px">
         ${['1','2','3','4','5','6','7','8','9'].map(d=>`<button class="pin-btn" onclick="pinPress('${d}')">${d}</button>`).join('')}
       </div>
       <div class="pin-grid">
@@ -506,8 +1596,8 @@ function renderLogin() {
         <button class="pin-btn del" onclick="pinPress('del')">⌫</button>
       </div>
     </div>
-    <button class="lang-btn" style="margin-top:24px" onclick="toggleLang()">${lang==='ru'?'EN':'RU'}</button>
-    <div class="restoflow">RestoFlow by <span>HOLFRID DIGITAL</span></div>
+    <button class="lang-btn" style="margin-top:32px" onclick="toggleLang()">${lang==='ru'?'EN':'RU'}</button>
+    <div class="restoflow">POWERED BY <span>HOLFRID DIGITAL</span></div>
   </div>`;
   window._pinVal = '';
 }
@@ -518,21 +1608,35 @@ function pinPress(d) {
   _pinVal += d; updateDots();
   if(_pinVal.length===4) doLogin();
 }
+
 function updateDots(err=false) {
   for(let i=0;i<4;i++){
     const dot=$('dot'+i);
     if(!dot) return;
-    dot.classList.toggle('filled',i<_pinVal.length&&!err);
-    dot.classList.toggle('error',i<_pinVal.length&&err);
+    dot.classList.toggle('filled',i<_pinVal.length && !err);
+    dot.classList.toggle('error',i<_pinVal.length && err);
   }
 }
+
 async function doLogin() {
   const ok = await tryLogin(_pinVal);
-  if(ok){ screen='main'; await loadTables(); subscribeRealtime(); }
-  else { updateDots(true); setTimeout(()=>{ _pinVal=''; updateDots(); },700); }
+  if(ok){
+    screen='main';
+    document.body.style.overflow = 'auto';
+    await loadTables();
+    await loadClients();
+    subscribeRealtime();
+  } else {
+    updateDots(true);
+    setTimeout(()=>{ _pinVal=''; updateDots(); },700);
+  }
 }
 
-function toggleLang(){ lang=lang==='ru'?'en':'ru'; render(); }
+function toggleLang(){
+  lang=lang==='ru'?'en':'ru';
+  savePreferences();
+  render();
+}
 
 function logoSVG(size=26) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 100 100">
@@ -543,14 +1647,16 @@ function logoSVG(size=26) {
     <polygon points="68,22 72,42 60,36" fill="#b8d4f0"/>
     <polygon points="68,22 56,38 48,30" fill="#c8dff5"/>
     <polygon points="68,22 48,30 44,20" fill="#d8eaf8"/>
-    ${[[20,15],[30,60],[15,45],[80,20],[85,45],[25,80],[75,15]].map(([x,y])=>`<polygon points="${x},${y} ${x+4},${y-6} ${x+8},${y}" fill="none" stroke="white" stroke-width="1.2"/>`).join('')}
   </svg>`;
 }
 
 function renderMain() {
   $('app').innerHTML = `
   <div class="hdr">
-    <div class="logo-wrap">${logoSVG(26)}<div><div class="logo-text">SUPERNOVA</div><div class="logo-sub">Lounge Bar</div></div></div>
+    <div class="logo-wrap">
+      <div class="logo-icon">${logoSVG(28)}</div>
+      <div><div class="logo-text">SUPERNOVA</div><div class="logo-sub">LOUNGE BAR</div></div>
+    </div>
     <div class="hdr-right">
       <span class="waiter-badge">👤 ${waiter?.name}</span>
       <button class="lang-btn" onclick="toggleLang()">${lang==='ru'?'EN':'RU'}</button>
@@ -573,7 +1679,7 @@ function renderContent() {
   else if(tab==='analytics') renderAnalyticsTab(c);
 }
 
-// ── TABLES ──
+// ===== TABLES RENDERING =====
 function renderTables(c) {
   if(addingTo!==null){ renderAddOrder(c); return; }
   if(расчётTable!==null){ renderRaschet(c); return; }
@@ -590,48 +1696,45 @@ function renderTables(c) {
 }
 
 function renderFloorPlan() {
-  // Landscape layout: all visible at once, no scroll
-  // Tables horizontal (wide), sofas on top/bottom (length side)
-  const W=364, H=340;
-
-  // sofa along top or bottom of a horizontal table
-  const sofa=(x,y,w,h,col)=>{
+  const W=364, H=380;
+  
+  const sofaVertical=(x,y,w,h,col)=>{
+    const ch=Math.floor(h/3);
+    const cushions=[1,2].map(i=>`<line x1="${x+2}" y1="${y+ch*i}" x2="${x+w-2}" y2="${y+ch*i}" stroke="${col}" stroke-width="1" opacity="0.5"/>`).join('');
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="0.8" stroke-opacity="0.5"/>${cushions}`;
+  };
+  const sofaHorizontal=(x,y,w,h,col)=>{
     const cw=Math.floor(w/3);
     const cushions=[1,2].map(i=>`<line x1="${x+cw*i}" y1="${y+2}" x2="${x+cw*i}" y2="${y+h-2}" stroke="${col}" stroke-width="1" opacity="0.5"/>`).join('');
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="0.8" stroke-opacity="0.5"/>${cushions}`;
   };
-  // armchair (for table 6 round)
   const chair=(x,y,w,h,col)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${col}" fill-opacity="0.18" stroke="${col}" stroke-width="0.8" stroke-opacity="0.6"/>`;
 
-  // Table configs — horizontal layout
-  // Left column: 7,6,5,4 (top to bottom)
-  // Right column: 1,2,3
-  const TW=82, TH=32, SF=8; // table width, height, sofa thickness
+  const TW=78, TH=30, SF=8;
   const lx=18, rx=210;
 
   const tcs=[
-    {id:7, x:lx, y:28,  w:TW, h:TH, shape:'rect'},
-    {id:6, x:lx+18, y:88, w:36, h:36, shape:'round'},
-    {id:5, x:lx, y:152, w:TW, h:TH, shape:'rect'},
-    {id:4, x:lx, y:218, w:TW, h:TH, shape:'rect'},
-    {id:1, x:rx, y:52,  w:TW+22, h:TH, shape:'rect'},
-    {id:2, x:rx, y:132, w:TW+22, h:TH, shape:'rect'},
-    {id:3, x:rx, y:212, w:TW+22, h:TH, shape:'rounded'},
+    {id:7, x:lx+20, y:32,  w:36, h:70, shape:'vertical'},
+    {id:6, x:lx+18, y:130, w:36, h:36, shape:'round'},
+    {id:5, x:lx, y:200, w:TW, h:TH, shape:'rect'},
+    {id:4, x:lx, y:270, w:TW, h:TH, shape:'rect'},
+    {id:1, x:rx, y:60,  w:TW+22, h:TH, shape:'rect'},
+    {id:2, x:rx, y:150, w:TW+22, h:TH, shape:'rect'},
+    {id:3, x:rx, y:240, w:TW+22, h:TH, shape:'rounded'},
   ];
 
   const shapes=tcs.map(tc=>{
     const t=tables.find(t=>t.id===tc.id)||{status:'free',orders:[],discount:0};
     const col=statusColor(t.status);
-    const sw=2;
     const tot=t.status==='occupied'?tableTotal(t,true):0;
 
     let sofasSVG='';
     if(tc.shape==='round'){
-      // table 6: 2 armchairs left and right
       sofasSVG=chair(tc.x-12,tc.y+8,10,20,col)+chair(tc.x+tc.w+2,tc.y+8,10,20,col);
+    } else if(tc.shape==='vertical'){
+      sofasSVG=sofaVertical(tc.x-SF-1,tc.y,SF,tc.h,col)+sofaVertical(tc.x+tc.w+1,tc.y,SF,tc.h,col);
     } else {
-      // sofas along top and bottom (horizontal length)
-      sofasSVG=sofa(tc.x,tc.y-SF-1,tc.w,SF,col)+sofa(tc.x,tc.y+tc.h+1,tc.w,SF,col);
+      sofasSVG=sofaHorizontal(tc.x,tc.y-SF-1,tc.w,SF,col)+sofaHorizontal(tc.x,tc.y+tc.h+1,tc.w,SF,col);
     }
 
     const shadow=tc.shape==='round'
@@ -639,11 +1742,15 @@ function renderFloorPlan() {
       :`<rect x="${tc.x+3}" y="${tc.y+3}" width="${tc.w}" height="${tc.h}" rx="${tc.shape==='rounded'?8:5}" fill="#000" opacity="0.25"/>`;
 
     const tableShape=tc.shape==='round'
-      ?`<circle cx="${tc.x+tc.w/2}" cy="${tc.y+tc.h/2}" r="${tc.w/2}" fill="#1e1e1e" stroke="${col}" stroke-width="${sw}"/>`
-      :`<rect x="${tc.x}" y="${tc.y}" width="${tc.w}" height="${tc.h}" rx="${tc.shape==='rounded'?8:5}" fill="#1e1e1e" stroke="${col}" stroke-width="${sw}"/>`;
+      ?`<circle cx="${tc.x+tc.w/2}" cy="${tc.y+tc.h/2}" r="${tc.w/2}" fill="#1e1e1e" stroke="${col}" stroke-width="2"/>`
+      :tc.shape==='vertical'
+      ?`<rect x="${tc.x}" y="${tc.y}" width="${tc.w}" height="${tc.h}" rx="5" fill="#1e1e1e" stroke="${col}" stroke-width="2"/>`
+      :`<rect x="${tc.x}" y="${tc.y}" width="${tc.w}" height="${tc.h}" rx="${tc.shape==='rounded'?8:5}" fill="#1e1e1e" stroke="${col}" stroke-width="2"/>`;
 
     const cx=tc.x+tc.w/2, cy=tc.y+tc.h/2;
-    const label=`<text x="${cx}" y="${cy+(t.status==='free'?4:-3)}" text-anchor="middle" font-size="13" font-weight="700" fill="${col}" font-family="-apple-system,sans-serif">${tc.id}</text>`;
+    let labelY=cy+(t.status==='free'?4:-3);
+    if(tc.shape==='vertical') labelY=cy;
+    const label=`<text x="${cx}" y="${labelY}" text-anchor="middle" font-size="13" font-weight="700" fill="${col}" font-family="-apple-system,sans-serif">${tc.id}</text>`;
     const sub=t.status==='occupied'
       ?`<text x="${cx}" y="${cy+11}" text-anchor="middle" font-size="8" fill="${col}">${tot} ₽</text>`
       :t.status==='reserved'
@@ -652,35 +1759,48 @@ function renderFloorPlan() {
     return `<g onclick="selTableClick(${tc.id})" style="cursor:pointer">${sofasSVG}${shadow}${tableShape}${label}${sub}</g>`;
   }).join('');
 
-  return `<div class="floor-container" style="overflow:hidden">
-  <svg id="floor-svg" viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:auto">
+  const neonText = `
+    <text x="182" y="195" text-anchor="middle" font-size="16" font-weight="900" fill="var(--gold)" font-family="Segoe UI, sans-serif" letter-spacing="3" transform="rotate(-90,182,195)" filter="url(#glow)">
+      СУПЕРНОВА
+    </text>
+    <defs>
+      <filter id="glow">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur1"/>
+        <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur2"/>
+        <feMerge>
+          <feMergeNode in="blur2"/>
+          <feMergeNode in="blur1"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+  `;
+
+  return `<div class="floor-container">
+  <svg id="floor-svg" viewBox="0 0 ${W} ${H}">
     <rect x="1" y="1" width="${W-2}" height="${H-2}" rx="12" fill="#111" stroke="#2e2e2e" stroke-width="1.5"/>
-    <!-- ВХОД top right -->
     <rect x="230" y="1" width="80" height="11" rx="3" fill="#242424"/>
     <text x="270" y="9.5" text-anchor="middle" font-size="7.5" fill="#666" letter-spacing="1">ВХОД</text>
-    <!-- Wall divider -->
     <line x1="175" y1="14" x2="175" y2="${H-30}" stroke="#2e2e2e" stroke-width="1" stroke-dasharray="5,4"/>
-    <!-- Floor subtle texture -->
-    <line x1="1" y1="${H*0.45}" x2="${W-1}" y2="${H*0.45}" stroke="#1a1a1a" stroke-width="0.5"/>
-    <!-- BAR bottom -->
     <rect x="60" y="${H-28}" width="244" height="22" rx="5" fill="#1e1e1e" stroke="#3a3a3a" stroke-width="1"/>
     <text x="182" y="${H-14}" text-anchor="middle" font-size="8.5" fill="#666" letter-spacing="2">БАР</text>
     ${shapes}
+    ${neonText}
   </svg></div>`;
 }
 
 function renderTableList() {
-  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
     ${tables.map(t=>`
-    <div onclick="selTableClick(${t.id})" style="background:var(--surface);border:2px solid ${selTable===t.id?statusColor(t.status):'var(--border)'};border-radius:12px;padding:12px;cursor:pointer">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <span style="font-size:14px;font-weight:500">${T('table')} ${t.id}</span>
-        <span style="width:8px;height:8px;border-radius:50%;background:${statusColor(t.status)};display:inline-block"></span>
+    <div onclick="selTableClick(${t.id})" style="background:var(--surface);backdrop-filter:blur(20px);border:1px solid ${selTable===t.id?statusColor(t.status):'var(--border)'};border-radius:20px;padding:16px;cursor:pointer">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:16px;font-weight:700">${T('table')} ${t.id}</span>
+        <span style="width:10px;height:10px;border-radius:50%;background:${statusColor(t.status)};display:inline-block;box-shadow:0 0 6px ${statusColor(t.status)}"></span>
       </div>
-      <div style="font-size:11px;color:${statusColor(t.status)};margin-bottom:4px">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div>
-      ${t.status==='occupied'?`<div style="font-size:13px;color:var(--gold)">${tableTotal(t,true)} ₽</div>`:''}
+      <div style="font-size:12px;color:${statusColor(t.status)};margin-bottom:6px;font-weight:600">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div>
+      ${t.status==='occupied'?`<div style="font-size:15px;color:var(--gold);font-weight:700">${tableTotal(t,true)} ₽</div>`:''}
       ${selTable===t.id?`
-      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px" onclick="event.stopPropagation()">
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px" onclick="event.stopPropagation()">
         <button class="btn btn-gold btn-sm" onclick="startAddOrder(${t.id})">${T('addOrder')}</button>
         ${t.orders?.length>0?`<button class="btn btn-outline-gold btn-sm" onclick="startRaschet(${t.id})">💰 ${T('checkout')}</button>`:''}
       </div>`:''}
@@ -691,12 +1811,12 @@ function renderTableList() {
 function renderTablePopup() {
   const t=tables.find(t=>t.id===selTable); if(!t) return '';
   return `
-  <div class="card" style="margin-top:12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span style="font-weight:500;font-size:15px">${T('table')} №${selTable}</span>
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <span style="font-weight:700;font-size:18px">${T('table')} №${selTable}</span>
       ${statusBadge(t.status)}
     </div>
-    ${t.status==='occupied'?`<div style="font-size:13px;color:var(--gold);margin-bottom:8px">${T('total')}: ${tableTotal(t,true)} ₽</div>`:''}
+    ${t.status==='occupied'?`<div style="font-size:15px;color:var(--gold);margin-bottom:12px;font-weight:700">${T('total')}: ${tableTotal(t,true)} ₽</div>`:''}
     <button class="btn btn-outline" onclick="openTableDetail(${selTable})">ℹ️ ${T('tableDetail')}</button>
     <button class="btn btn-gold" onclick="startAddOrder(${selTable})">+ ${T('addOrder')}</button>
     <button class="btn btn-pink" onclick="startNewBron(${selTable})">+ ${T('bron')}</button>
@@ -704,104 +1824,155 @@ function renderTablePopup() {
   </div>`;
 }
 
-// ── ADD ORDER ──
+// ===== ADD ORDER =====
 function renderAddOrder(c) {
   const t=tables.find(t=>t.id===addingTo)||{orders:[],discount:0};
-  const items = menuSearch
-    ? Object.entries(MENU).flatMap(([cat,arr])=>arr.map(i=>({...i,cat}))).filter(i=>(lang==='ru'?i.ru:i.en).toLowerCase().includes(menuSearch.toLowerCase()))
-    : (MENU[menuCat]||[]).map(i=>({...i,cat:menuCat}));
+  
+  let items = [];
+  if (menuSearchTemp) {
+    items = Object.entries(MENU).flatMap(([cat,arr])=>arr.map(i=>({...i,cat}))).filter(i=>(lang==='ru'?i.ru:i.en).toLowerCase().includes(menuSearchTemp.toLowerCase()));
+  } else {
+    items = (MENU[menuCat]||[]).map(i=>({...i,cat:menuCat}));
+  }
 
   c.innerHTML = `
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="setAddingTo(null)">← ${T('back')}</button>
-    <span style="color:var(--gold);font-size:15px">${lang==='ru'?'Меню — Стол':'Menu — Table'} ${addingTo}</span>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <button class="btn btn-outline" style="width:auto;padding:10px 18px;margin-bottom:0;border-radius:40px" onclick="setAddingTo(null)">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:18px;font-weight:700">${lang==='ru'?'Меню — Стол':'Menu — Table'} ${addingTo}</span>
   </div>
-  <div style="position:relative;margin-bottom:12px">
-    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%)">🔍</span>
-    <input class="inp" style="padding-left:36px" placeholder="${T('searchMenu')}" value="${menuSearch}" oninput="setMenuSearch(this.value)"/>
+  
+  <div style="position:relative;margin-bottom:16px">
+    <span style="position:absolute;left:16px;top:50%;transform:translateY(-50%)">🔍</span>
+    <input type="search" class="inp" style="padding-left:48px" placeholder="${T('searchMenu')}" value="${menuSearchTemp}" oninput="updateMenuSearchTemp(this.value)" id="menu-search-input" inputmode="search"/>
   </div>
-  ${!menuSearch?`<div class="cat-scroll">${MENU_CATS.map(c=>`<button class="cat-btn ${menuCat===c.k?'active':''}" onclick="setMenuCat('${c.k}')">${c[lang]}</button>`).join('')}</div>`:''}
-  ${items.map(item=>`
-  <div class="card" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:10px 14px">
-    <div>
-      <div style="font-size:14px;margin-bottom:2px">${lang==='ru'?item.ru:item.en}</div>
-      <div style="font-size:13px;color:var(--gold)">${item.price} ₽</div>
-    </div>
-    <button onclick="doAddOrder('${item.id}','${item.ru}','${item.en}',${item.price},'${item.cat}')" style="background:var(--gold);border:none;border-radius:8px;width:34px;height:34px;font-size:20px;cursor:pointer;color:#000;flex-shrink:0">+</button>
-  </div>`).join('')}
-  ${t.orders?.length>0?`
-  <div class="card" style="margin-top:8px">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">${T('orders')}</div>
+  
+  ${!menuSearchTemp ? `
+  <div class="cat-scroll">
+    ${MENU_CATS.map(c=>`<button class="cat-btn ${menuCat===c.k?'active':''}" onclick="setMenuCatAndRefresh('${c.k}')">${c[lang]}</button>`).join('')}
+  </div>` : ''}
+  
+  <div style="max-height:450px;overflow-y:auto">
+    ${items.map(item=>`
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:14px 16px;border-radius:20px">
+      <div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">${lang==='ru'?item.ru:item.en}</div>
+        <div style="font-size:14px;color:var(--gold);font-weight:700">${item.price} ₽</div>
+      </div>
+      <button onclick="doAddOrder('${item.id}','${item.ru}','${item.en}',${item.price},'${item.cat}')" style="background:var(--gold);border:none;border-radius:40px;width:44px;height:44px;font-size:22px;cursor:pointer;color:#0A0A0A;flex-shrink:0;font-weight:700">+</button>
+    </div>`).join('')}
+  </div>
+  
+  ${t.orders?.length>0 ? `
+  <div class="card" style="margin-top:16px;border-radius:24px">
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;letter-spacing:1.5px">${T('orders')}</div>
     ${t.orders.map(o=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
-      <span style="font-size:13px">${lang==='ru'?o.item_name_ru:o.item_name_en} × ${o.qty}</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:13px;color:var(--gold)">${o.price*o.qty} ₽</span>
-        <button onclick="doRemoveOrder('${o.id}',${addingTo})" style="background:none;border:1px solid var(--border);border-radius:6px;width:24px;height:24px;font-size:14px;color:var(--red);cursor:pointer">−</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:14px;font-weight:500">${lang==='ru'?o.item_name_ru:o.item_name_en}</span>
+      <div class="qty-controls">
+        <button class="qty-btn" onclick="updateOrderQty('${o.id}', ${o.qty-1}, ${addingTo})">−</button>
+        <span class="qty-value">${o.qty}</span>
+        <button class="qty-btn" onclick="updateOrderQty('${o.id}', ${o.qty+1}, ${addingTo})">+</button>
+        <span style="font-size:15px;color:var(--gold);font-weight:700;min-width:80px;text-align:right">${o.price*o.qty} ₽</span>
       </div>
     </div>`).join('')}
-    <div style="display:flex;justify-content:space-between;margin-top:8px;font-weight:500">
+    <div style="display:flex;justify-content:space-between;margin-top:14px;font-weight:800;font-size:18px">
       <span>${T('total')}</span><span style="color:var(--gold)">${tableTotal(t)} ₽</span>
     </div>
-  </div>`:''}`;
+  </div>` : ''}`;
+  
+  setTimeout(() => {
+    const searchInput = document.getElementById('menu-search-input');
+    if (searchInput) searchInput.focus();
+  }, 50);
 }
 
-// ── РАСЧЁТ ──
+function updateMenuSearchTemp(value) {
+  menuSearchTemp = value;
+  if (menuSearchTimeout) clearTimeout(menuSearchTimeout);
+  menuSearchTimeout = setTimeout(() => {
+    renderContent();
+  }, 600);
+}
+
+function setMenuCatAndRefresh(cat) {
+  menuCat = cat;
+  menuSearchTemp = '';
+  renderContent();
+}
+
+async function updateOrderQty(orderId, newQty, tableId) {
+  if (newQty <= 0) {
+    showConfirm(T('confirmDelete'), async () => {
+      await dbUpdateOrderQty(orderId, 0, tableId);
+      renderContent();
+    });
+  } else {
+    await dbUpdateOrderQty(orderId, newQty, tableId);
+    renderContent();
+  }
+}
+
+// ===== CHECKOUT & BILL =====
 function renderRaschet(c) {
   const t=tables.find(t=>t.id===расчётTable); if(!t) return;
   const raw=tableTotal(t,false), disc=tableTotal(t,true);
   c.innerHTML = `
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="setRaschet(null)">← ${T('back')}</button>
-    <span style="color:var(--gold)">💰 ${lang==='ru'?'Расчёт — Стол':'Checkout — Table'} №${расчётTable}</span>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <button class="btn btn-outline" style="width:auto;padding:10px 18px;margin-bottom:0;border-radius:40px" onclick="setRaschet(null)">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:18px;font-weight:700">💰 ${lang==='ru'?'Расчёт — Стол':'Checkout — Table'} №${расчётTable}</span>
   </div>
-  <div class="card">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">${T('orders')}</div>
+  <div class="card" style="border-radius:24px">
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;letter-spacing:1.5px">${T('orders')}</div>
     ${t.orders.map(o=>`
-    <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">
       <span>${lang==='ru'?o.item_name_ru:o.item_name_en} × ${o.qty}</span>
-      <span style="color:var(--gold)">${o.price*o.qty} ₽</span>
+      <span style="color:var(--gold);font-weight:600">${o.price*o.qty} ₽</span>
     </div>`).join('')}
-    <div style="display:flex;justify-content:space-between;margin-top:8px;font-weight:500;font-size:15px">
+    <div style="display:flex;justify-content:space-between;margin-top:12px;font-weight:800;font-size:18px">
       <span>${T('total')}</span><span style="color:var(--gold)">${raw} ₽</span>
     </div>
   </div>
-  <div class="card">
-    <div style="font-size:14px;font-weight:500;margin-bottom:6px">${T('applyDiscount')}</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${T('discNote')}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:${t.discount>0?12:0}px">
-      ${[0,...[10,15,20,30,50]].map(pct=>pct===0?'':`<button class="disc-btn ${t.discount===pct?'active':''}" onclick="doSetDiscount(${расчётTable},${pct})">${pct}%</button>`).join('')}
-      ${t.discount>0?`<button onclick="doSetDiscount(${расчётTable},0)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--red);font-size:13px;cursor:pointer">✕ ${lang==='ru'?'Убрать':'Remove'}</button>`:''}
+  <div class="card" style="border-radius:24px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:10px">${T('applyDiscount')}</div>
+    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:14px">${T('discNote')}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:${t.discount>0?16:0}px">
+      ${[10,15,20,30,50].map(pct=>`<button class="disc-btn ${t.discount===pct?'active':''}" onclick="doSetDiscount(${расчётTable},${pct})">${pct}%</button>`).join('')}
+      ${t.discount>0?`<button onclick="doSetDiscount(${расчётTable},0)" style="padding:10px 16px;border-radius:40px;border:1px solid var(--border);background:none;color:var(--red);font-size:13px;cursor:pointer">✕ ${lang==='ru'?'Убрать':'Remove'}</button>`:''}
     </div>
     ${t.discount>0?`
-    <div style="background:#1A1500;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between">
-      <span style="font-size:13px;color:var(--muted)">${lang==='ru'?'К оплате со скидкой':'Total with discount'}</span>
+    <div style="background:rgba(212,175,55,0.1);border-radius:20px;padding:14px 18px;display:flex;justify-content:space-between">
+      <span style="font-size:13px;color:var(--text-secondary)">${lang==='ru'?'К оплате со скидкой':'Total with discount'}</span>
       <div style="text-align:right">
-        <div style="font-size:18px;font-weight:700;color:var(--gold)">${disc} ₽</div>
+        <div style="font-size:22px;font-weight:800;color:var(--gold)">${disc} ₽</div>
         <div style="font-size:12px;color:var(--green)">-${raw-disc} ₽ (-${t.discount}%)</div>
       </div>
     </div>`:''}
   </div>
-  <button class="btn btn-gold" onclick="goBill(${расчётTable})">🖨️ ${T('printBill')}</button>
-  <button class="btn btn-outline" onclick="setRaschet(null)">${T('cancel')}</button>`;
+  <button class="btn btn-gold" onclick="goBill(${расчётTable})" style="border-radius:40px">🖨️ ${T('printBill')}</button>
+  <button class="btn btn-outline" onclick="setRaschet(null)" style="border-radius:40px">${T('cancel')}</button>`;
 }
 
-// ── BILL ──
 function renderBill(c) {
   const t=tables.find(t=>t.id===billTable); if(!t) return;
   const raw=tableTotal(t,false), disc=tableTotal(t,true);
   const given=parseFloat(cashGiven)||0, change=given-disc;
-  const srv=t.waiter_id;
+  
   c.innerHTML = `
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="backToBill()">← ${T('back')}</button>
-    <span style="color:var(--gold)">🖨️ Чек — ${T('table')} №${billTable}</span>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <button class="btn btn-outline" style="width:auto;padding:10px 18px;margin-bottom:0;border-radius:40px" onclick="backToBill()">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:18px;font-weight:700">🖨️ Чек — ${T('table')} №${billTable}</span>
   </div>
+  
   <div class="receipt">
-    <div class="receipt-title">SUPERNOVA</div>
+    <div class="receipt-header">
+      <div class="receipt-title">${BAR_INFO.name}</div>
+      <div class="receipt-address">${BAR_INFO.address}</div>
+      <div class="receipt-phone">${BAR_INFO.phone}</div>
+      <div class="receipt-phone">${BAR_INFO.taxId}</div>
+    </div>
     <div class="receipt-sub">LOUNGE BAR</div>
     <div class="receipt-divider"></div>
-    <div style="text-align:center;font-size:12px">${T('table')} №${billTable} · ${new Date().toLocaleTimeString()}</div>
+    <div style="text-align:center;font-size:11px">${T('table')} №${billTable} · ${new Date().toLocaleTimeString()}</div>
     <div class="receipt-divider"></div>
     ${t.orders.map(o=>`<div class="receipt-row"><span>${lang==='ru'?o.item_name_ru:o.item_name_en} x${o.qty}</span><span>${o.price*o.qty} ₽</span></div>`).join('')}
     <div class="receipt-divider"></div>
@@ -809,93 +1980,104 @@ function renderBill(c) {
     <div class="receipt-row" style="color:#777"><span>${lang==='ru'?'Без скидки':'Subtotal'}</span><span>${raw} ₽</span></div>
     <div class="receipt-row" style="color:#c0395a"><span>${T('discount')} ${t.discount}%</span><span>-${raw-disc} ₽</span></div>`:''}
     <div class="receipt-total"><span>ИТОГО</span><span>${disc} ₽</span></div>
-    <div style="font-size:10px;color:#999;text-align:center;margin-top:10px">Спасибо за визит!</div>
+    <div style="font-size:9px;color:#999;text-align:center;margin-top:12px">Спасибо за визит!</div>
+    <div style="font-size:8px;color:#aaa;text-align:center;margin-top:8px">${BAR_INFO.address} | ${BAR_INFO.phone}</div>
   </div>
-  <div style="font-size:13px;color:var(--muted);margin-bottom:10px;text-align:center">${T('payMethod')||lang==='ru'?'Способ оплаты':'Payment method'}</div>
-  <div style="display:flex;gap:10px;margin-bottom:14px">
+  
+  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;text-align:center;font-weight:600">${lang==='ru'?'Способ оплаты':'Payment method'}</div>
+  <div style="display:flex;gap:14px;margin-bottom:20px">
     <button class="pay-btn ${payMethod==='cash'?'active':''}" onclick="setPayMethod('cash')">💵 ${T('cash')}</button>
     <button class="pay-btn ${payMethod==='card'?'active':''}" onclick="setPayMethod('card')">💳 ${T('card')}</button>
   </div>
   ${payMethod==='cash'?`
-  <div class="card" style="margin-bottom:14px">
-    <div style="font-size:13px;color:var(--muted);margin-bottom:8px">${T('cashReceived')}</div>
-    <input type="number" class="inp" style="font-size:22px;font-weight:500;text-align:center;margin-bottom:10px" value="${cashGiven}" placeholder="0" oninput="setCashGiven(this.value)"/>
-    ${given>=disc?`<div class="change-box"><span style="font-size:14px;color:var(--muted)">${T('change')}</span><span style="font-size:20px;font-weight:500;color:var(--green)">${change.toFixed(0)} ₽</span></div>`:''}
-    ${cashGiven&&given<disc?`<div style="text-align:center;color:var(--red);font-size:13px">${T('notEnough')} (${(disc-given).toFixed(0)} ₽)</div>`:''}
+  <div class="card" style="margin-bottom:20px;border-radius:24px">
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;font-weight:600">${T('cashReceived')}</div>
+    <input type="number" class="inp" style="font-size:24px;font-weight:800;text-align:center;margin-bottom:14px;border-radius:40px" value="${cashGiven}" placeholder="0" oninput="setCashGiven(this.value)"/>
+    ${given>=disc?`<div class="change-box"><span style="font-size:14px;font-weight:600;color:var(--text-secondary)">${T('change')}</span><span style="font-size:24px;font-weight:800;color:var(--green)">${change.toFixed(0)} ₽</span></div>`:''}
+    ${cashGiven && given<disc?`<div style="text-align:center;color:var(--red);font-size:13px;margin-top:10px;font-weight:600">${T('notEnough')} (${(disc-given).toFixed(0)} ₽)</div>`:''}
   </div>`:''}
-  <button class="btn btn-gold" ${!payMethod||(payMethod==='cash'&&given<disc)?'disabled style="opacity:0.4"':''} onclick="doConfirmPay()">
+  <button class="btn btn-gold" ${!payMethod||(payMethod==='cash'&&given<disc)?'disabled style="opacity:0.5;border-radius:40px"':''} onclick="doConfirmPay()" style="border-radius:40px">
     ${T('paid')}
   </button>
-  <button class="btn btn-outline" onclick="backToBill()">${T('cancel')}</button>`;
+  <button class="btn btn-outline" onclick="backToBill()" style="border-radius:40px">${T('cancel')}</button>`;
 }
 
-// ── TABLE DETAIL ──
+// ===== TABLE DETAIL =====
 function renderTableDetail(c) {
   const t=tables.find(t=>t.id===tableDetailId); if(!t) return;
   c.innerHTML = `
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="closeTableDetail()">← ${T('back')}</button>
-    <span style="color:var(--gold)">${T('table')} №${tableDetailId}</span>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <button class="btn btn-outline" style="width:auto;padding:10px 18px;margin-bottom:0;border-radius:40px" onclick="closeTableDetail()">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:18px;font-weight:700">${T('table')} №${tableDetailId}</span>
     ${statusBadge(t.status)}
   </div>
-  <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:14px">
-    <button onclick="setTableDetailTab('info')" style="flex:1;padding:12px;background:none;border:none;color:${tableDetailTab==='info'?'var(--pink)':'var(--muted)'};border-bottom:${tableDetailTab==='info'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer">${T('table')} №${tableDetailId}</button>
-    <button onclick="setTableDetailTab('bron')" style="flex:1;padding:12px;background:none;border:none;color:${tableDetailTab==='bron'?'var(--pink)':'var(--muted)'};border-bottom:${tableDetailTab==='bron'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer">${T('bookings')}</button>
+  <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:20px">
+    <button onclick="setTableDetailTab('info')" style="flex:1;padding:14px;background:none;border:none;color:${tableDetailTab==='info'?'var(--pink)':'var(--text-secondary)'};border-bottom:${tableDetailTab==='info'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer;font-weight:600">${T('table')} №${tableDetailId}</button>
+    <button onclick="setTableDetailTab('bron')" style="flex:1;padding:14px;background:none;border:none;color:${tableDetailTab==='bron'?'var(--pink)':'var(--text-secondary)'};border-bottom:${tableDetailTab==='bron'?'2px solid var(--pink)':'2px solid transparent'};font-size:14px;cursor:pointer;font-weight:600">${T('bookings')}</button>
   </div>
   ${tableDetailTab==='info'?`
-    <div style="background:var(--surface2);border-radius:12px;height:160px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:13px;color:var(--muted)">📷 ${lang==='ru'?'Фото стола':'Table photo'}</div>
-    <div style="display:flex;gap:10px;margin-bottom:14px">
-      <div class="metric"><div class="metric-label">Статус</div><div class="metric-val" style="font-size:13px;color:${statusColor(t.status)}">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div></div>
-      <div class="metric"><div class="metric-label">Броней</div><div class="metric-val" style="color:var(--pink)">${t.brons?.length||0}</div></div>
-      ${t.status==='occupied'?`<div class="metric"><div class="metric-label">Счёт</div><div class="metric-val" style="font-size:14px;color:var(--gold)">${tableTotal(t)} ₽</div></div>`:''}
+    <div style="background:rgba(255,255,255,0.03);border-radius:24px;height:160px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:13px;color:var(--text-secondary);border:1px dashed var(--border)">📷 ${lang==='ru'?'Фото стола':'Table photo'}</div>
+    <div style="display:flex;gap:14px;margin-bottom:20px">
+      <div class="metric"><div class="metric-label">Статус</div><div class="metric-val" style="font-size:16px;color:${statusColor(t.status)}">${T(t.status==='occupied'?'occupied':t.status==='reserved'?'reserved':'free')}</div></div>
+      <div class="metric"><div class="metric-label">Броней</div><div class="metric-val" style="font-size:16px;color:var(--pink)">${t.brons?.length||0}</div></div>
+      ${t.status==='occupied'?`<div class="metric"><div class="metric-label">Счёт</div><div class="metric-val" style="font-size:16px;color:var(--gold)">${tableTotal(t)} ₽</div></div>`:''}
     </div>
-    <button class="btn btn-pink" onclick="startNewBron(${tableDetailId})">+ ${T('newBron')}</button>
-    ${t.status!=='occupied'?`<button class="btn btn-green" onclick="doOpenTable(${tableDetailId})">${T('openTable')}</button>`:''}
-    ${t.status==='occupied'&&t.orders?.length>0?`<button class="btn btn-outline-gold" onclick="startRaschet(${tableDetailId});closeTableDetail()">💰 ${T('checkout')}</button>`:''}
+    <button class="btn btn-pink" onclick="startNewBron(${tableDetailId})" style="border-radius:40px">+ ${T('newBron')}</button>
+    ${t.status!=='occupied'?`<button class="btn btn-green" onclick="doOpenTable(${tableDetailId})" style="border-radius:40px">${T('openTable')}</button>`:''}
+    ${t.status==='occupied'&&t.orders?.length>0?`<button class="btn btn-outline-gold" onclick="startRaschet(${tableDetailId});closeTableDetail()" style="border-radius:40px">💰 ${T('checkout')}</button>`:''}
   `:`
-    ${!t.brons?.length?`<div style="text-align:center;color:var(--muted);padding:40px">${T('noBookings')}</div>`
-    :t.brons.map(b=>`
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <span style="font-weight:500">${b.guest_name}</span><span style="color:var(--pink);font-size:13px">${b.arrival_time}</span>
+    ${!t.brons?.length?`<div style="text-align:center;color:var(--text-secondary);padding:50px">${T('noBookings')}</div>`
+    :t.brons.filter(b=>b.status==='active').map(b=>`
+    <div class="card" style="border-radius:24px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="font-weight:700">${b.guest_name}</span><span style="color:var(--pink);font-size:13px;font-weight:600">${b.arrival_time}</span>
       </div>
-      <div style="font-size:13px;color:var(--muted)">${b.guest_phone||''} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
-      ${b.note?`<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">${b.note}</div>`:''}
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn btn-green btn-sm" onclick="doOpenTable(${tableDetailId})">${T('open')}</button>
-        <button class="btn btn-outline-red btn-sm" onclick="doCancelBron('${b.id}',${tableDetailId})">✕ ${T('cancelBron')}</button>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px">${formatPhoneForDisplay(b.guest_phone) || ''} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
+      ${b.note?`<div style="font-size:12px;color:var(--text-secondary);margin-top:8px;font-style:italic">${b.note}</div>`:''}
+      <div style="display:flex;gap:12px;margin-top:14px">
+        <button class="btn btn-green btn-sm" onclick="doOpenTable(${tableDetailId})" style="border-radius:40px">${T('open')}</button>
+        <button class="btn btn-outline-red btn-sm" onclick="showConfirmCancelBron('${b.id}',${tableDetailId})" style="border-radius:40px">✕ ${T('cancelBron')}</button>
       </div>
     </div>`).join('')}
-    <button class="btn btn-pink" onclick="startNewBron(${tableDetailId})">+ ${T('newBron')}</button>
+    <button class="btn btn-pink" onclick="startNewBron(${tableDetailId})" style="border-radius:40px">+ ${T('newBron')}</button>
   `}`;
 }
 
-// ── BRON ──
+function showConfirmCancelBron(bronId, tableId) {
+  showConfirm(T('confirmCancelBron'), () => doCancelBron(bronId, tableId));
+}
+
+// ===== BRON =====
 function renderBron(c) {
   if(bronTab==='new'){ renderNewBron(c); return; }
-  const brons = tables.flatMap(t=>(t.brons||[]).map(b=>({...b,tableId:t.id})))
-    .filter(b=>!searchBron||b.guest_name?.toLowerCase().includes(searchBron.toLowerCase())||b.guest_phone?.includes(searchBron));
-  const allBrons = tables.flatMap(t=>(t.brons||[]));
-  const now = new Date(); const nowMin=now.getHours()*60+now.getMinutes();
-  const lateCount = allBrons.filter(b=>{const[h,m]=(b.arrival_time||'0:0').split(':');return(parseInt(h)*60+parseInt(m))<nowMin;}).length;
+  
+  const brons = tables.flatMap(t=>(t.brons||[]).filter(b=>b.status==='active').map(b=>({...b, tableId:t.id})))
+    .filter(b=>!searchBron || b.guest_name?.toLowerCase().includes(searchBron.toLowerCase()) || b.guest_phone?.includes(searchBron));
+  
+  const now = new Date(); 
+  const nowMin = now.getHours()*60 + now.getMinutes();
+  const lateCount = brons.filter(b => {
+    const [h,m] = (b.arrival_time||'0:0').split(':');
+    return (parseInt(h)*60 + parseInt(m)) < nowMin;
+  }).length;
 
   c.innerHTML = `
-  <div style="display:flex;gap:8px;margin-bottom:14px">
-    <div class="search-wrap"><span class="search-icon">🔍</span><input class="inp" placeholder="${lang==='ru'?'Имя или телефон':'Name or phone'}" value="${searchBron}" oninput="setSearchBron(this.value)"/></div>
-    <button class="btn btn-pink" style="width:auto;padding:0 14px;white-space:nowrap;margin-bottom:0" onclick="setBronTab('new')">+ ${T('bron')}</button>
+  <div style="display:flex;gap:12px;margin-bottom:20px">
+    <div class="search-wrap"><span class="search-icon">🔍</span><input type="search" class="inp" placeholder="${lang==='ru'?'Имя или телефон':'Name or phone'}" value="${searchBron}" oninput="updateBronSearchTemp(this.value)" id="bron-search-input" inputmode="search" style="border-radius:40px"/></div>
+    <button class="btn btn-pink" style="width:auto;padding:0 22px;white-space:nowrap;margin-bottom:0;border-radius:40px" onclick="setBronTab('new')">+ ${T('bron')}</button>
   </div>
-  ${!brons.length?`<div style="text-align:center;color:var(--muted);padding:40px">${T('noBookings')}</div>`
+  ${!brons.length?`<div style="text-align:center;color:var(--text-secondary);padding:50px">${T('noBookings')}</div>`
   :brons.map(b=>`
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-      <span style="font-weight:500">${b.guest_name}</span><span style="color:var(--pink);font-size:13px">${b.arrival_time}</span>
+  <div class="card" style="border-radius:24px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+      <span style="font-weight:700">${b.guest_name}</span><span style="color:var(--pink);font-size:13px;font-weight:600">${b.arrival_time}</span>
     </div>
-    <div style="font-size:13px;color:var(--muted)">${T('table')} №${b.tableId} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
-    <div style="font-size:13px;color:var(--muted)">${b.guest_phone||''}</div>
-    ${b.note?`<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">${b.note}</div>`:''}
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="btn btn-green btn-sm" onclick="doOpenTable(${b.tableId})">${T('open')}</button>
-      <button class="btn btn-outline-red btn-sm" onclick="doCancelBron('${b.id}',${b.tableId})">✕ ${T('cancelBron')}</button>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px">${T('table')} №${b.tableId} · ${b.guests_count} ${lang==='ru'?'чел.':'guests'}</div>
+    <div style="font-size:13px;color:var(--text-secondary)">${formatPhoneForDisplay(b.guest_phone) || ''}</div>
+    ${b.note?`<div style="font-size:12px;color:var(--text-secondary);margin-top:8px;font-style:italic">${b.note}</div>`:''}
+    <div style="display:flex;gap:12px;margin-top:14px">
+      <button class="btn btn-green btn-sm" onclick="doOpenTable(${b.tableId})" style="border-radius:40px">${T('open')}</button>
+      <button class="btn btn-outline-red btn-sm" onclick="showConfirmCancelBron('${b.id}',${b.tableId})" style="border-radius:40px">✕ ${T('cancelBron')}</button>
     </div>
   </div>`).join('')}
   <div class="bron-counters">
@@ -903,122 +2085,210 @@ function renderBron(c) {
     <div class="bron-counter"><div class="bron-counter-label" style="color:var(--green)">${T('openCount')}</div><div class="bron-counter-val" style="color:var(--green)">${tables.filter(t=>t.status==='occupied').length}</div></div>
     <div class="bron-counter"><div class="bron-counter-label" style="color:var(--pink)">${T('newCount')}</div><div class="bron-counter-val" style="color:var(--pink)">${tables.filter(t=>t.status==='reserved').length}</div></div>
   </div>`;
+  
+  setTimeout(() => {
+    const searchInput = document.getElementById('bron-search-input');
+    if (searchInput) searchInput.focus();
+  }, 50);
+}
+
+function updateBronSearchTemp(value) {
+  if (searchBronTimeout) clearTimeout(searchBronTimeout);
+  searchBronTimeout = setTimeout(() => {
+    searchBron = value;
+    renderContent();
+  }, 600);
 }
 
 function renderNewBron(c) {
+  const today = new Date().toISOString().split('T')[0];
   c.innerHTML = `
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-    <button class="btn btn-outline" style="width:auto;padding:6px 12px" onclick="setBronTab('list')">← ${T('back')}</button>
-    <span style="color:var(--gold)">${T('newBron')}</span>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <button class="btn btn-outline" style="width:auto;padding:10px 18px;margin-bottom:0;border-radius:40px" onclick="setBronTab('list')">← ${T('back')}</button>
+    <span style="color:var(--gold);font-size:18px;font-weight:700">${T('newBron')}</span>
   </div>
-  <div style="margin-bottom:14px">
+  <div class="card" style="border-radius:28px">
     <label class="lbl">${T('table')}</label>
-    <div style="display:flex;flex-wrap:wrap;gap:8px">
-      ${tables.map(t=>`<button onclick="setBronTableId(${t.id})" style="padding:8px 14px;border-radius:8px;border:2px solid ${bronTableId===t.id?'var(--pink)':'var(--border)'};background:${bronTableId===t.id?'#2A0010':'var(--surface)'};color:${bronTableId===t.id?'var(--pink)':'var(--muted)'};font-size:14px;cursor:pointer">№${t.id}</button>`).join('')}
+    <div class="table-buttons">
+      ${tables.filter(t=>t.status!=='occupied').map(t=>`<button class="table-btn ${bronTableId===t.id?'active':''}" onclick="setBronTableId(${t.id})" style="border-radius:40px">№${t.id}</button>`).join('')}
     </div>
+    <label class="lbl">${T('guestName')}</label>
+    <div style="position:relative">
+      <input class="inp" style="margin-bottom:20px;border-radius:40px" id="bron-name" value="${bronForm.name}" placeholder="${lang==='ru'?'Иван Петров':'John Smith'}" oninput="searchClients(this.value)"/>
+      <div id="suggestions-container"></div>
+    </div>
+    
+    <label class="lbl">${T('phone')}</label>
+    <input class="inp phone-inp" style="margin-bottom:20px;border-radius:40px" id="bron-phone" value="${bronForm.phone}" placeholder="+7 ___ ___ __ __" oninput="handlePhoneInput(this)"/>
+    
+    <div class="equal-row">
+      <div class="equal-item"><label class="lbl">${T('date')}</label><input type="date" class="inp" id="bron-date" value="${today}" min="${today}" style="border-radius:40px" lang="ru"/></div>
+      <div class="equal-item"><label class="lbl">${T('time')}</label><input type="time" class="inp" id="bron-time" value="${bronForm.time}" min="12:00" max="23:59" style="border-radius:40px"/></div>
+    </div>
+    
+    <div class="equal-row">
+      <div class="equal-item"><label class="lbl">${T('guests')}</label><input type="number" class="inp" id="bron-guests" value="${bronForm.guests}" min="1" style="border-radius:40px"/></div>
+      <div class="equal-item"><div style="visibility:hidden">placeholder</div></div>
+    </div>
+    
+    <label class="lbl">${T('note')}</label>
+    <input class="inp" id="bron-note" value="${bronForm.note}" placeholder="${lang==='ru'?'День рождения, особые пожелания...':'Special requests...'}" style="border-radius:40px"/>
   </div>
-  <label class="lbl">${T('guestName')}</label>
-  <input class="inp" style="margin-bottom:14px" value="${bronForm.name}" oninput="bronForm.name=this.value" placeholder="${lang==='ru'?'Иван Петров':'John Smith'}"/>
-  <label class="lbl">${T('phone')}</label>
-  <input class="inp phone-inp" style="margin-bottom:14px" id="phone-inp" value="${bronForm.phone}" oninput="formatPhone(this)" placeholder="+7 xxx xxx xx xx"/>
-  <div class="dt-row">
-    <div><label class="lbl">${T('guests')}</label><input type="number" class="inp" value="${bronForm.guests}" oninput="bronForm.guests=this.value" min="1"/></div>
-    <div><label class="lbl">${lang==='ru'?'Дата':'Date'}</label><input type="date" class="inp" value="${bronForm.date||new Date().toISOString().split('T')[0]}" oninput="bronForm.date=this.value"/></div>
-  </div>
-  <div style="margin-bottom:14px"><label class="lbl">${T('arrival')}</label><input type="time" class="inp" value="${bronForm.time}" oninput="bronForm.time=this.value" style="width:50%"/></div>
-  <label class="lbl">${T('note')}</label>
-  <input class="inp" style="margin-bottom:14px" value="${bronForm.note}" oninput="bronForm.note=this.value" placeholder="${lang==='ru'?'День рождения, особые пожелания...':'Special requests...'}"/>
-  <button class="btn btn-pink" ${!bronForm.name||!bronTableId?'disabled style="opacity:0.4"':''} onclick="doSaveBron()">${T('save')} →</button>`;
+  <button class="btn btn-pink" onclick="doSaveBronFromForm()" style="border-radius:40px">${T('save')} →</button>`;
 }
 
-// ── ANALYTICS ──
+function handlePhoneInput(input) {
+  bronForm.phone = formatPhoneForDisplay(input.value);
+  input.value = bronForm.phone;
+}
+
+// ===== ANALYTICS =====
 function renderAnalyticsTab(c) {
-  if(!waiter?.is_admin){ c.innerHTML=`<div style="text-align:center;padding:60px;color:var(--muted)">${lang==='ru'?'Только для администратора':'Admin only'}</div>`; return; }
+  if(!waiter?.is_admin){ 
+    c.innerHTML=`<div style="text-align:center;padding:60px;color:var(--text-secondary)">${lang==='ru'?'Только для администратора':'Admin only'}</div>`; 
+    return; 
+  }
+  
   const today = new Date().toISOString().split('T')[0];
   if(!analyticsFrom) analyticsFrom = today;
   if(!analyticsTo) analyticsTo = today;
 
   const live = `
-  <div class="card" style="margin-bottom:14px">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('liveStatus')}</div>
-    <div style="display:flex;gap:10px">
-      <div class="metric"><div class="metric-label" style="color:var(--gold)">${T('busy')}</div><div class="metric-val" style="color:var(--gold)">${tables.filter(t=>t.status==='occupied').length}</div></div>
-      <div class="metric"><div class="metric-label" style="color:var(--green)">${T('freeCount')}</div><div class="metric-val" style="color:var(--green)">${tables.filter(t=>t.status==='free').length}</div></div>
-      <div class="metric"><div class="metric-label" style="color:var(--pink)">${T('reserved2')}</div><div class="metric-val" style="color:var(--pink)">${tables.filter(t=>t.status==='reserved').length}</div></div>
+  <div class="card" style="margin-bottom:20px;border-radius:28px">
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;text-transform:uppercase;letter-spacing:1.5px">${T('liveStatus')}</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <div class="metric"><div class="metric-label" style="color:var(--gold)">${T('busy')}</div><div class="metric-val" style="color:var(--gold);font-size:22px">${tables.filter(t=>t.status==='occupied').length}</div></div>
+      <div class="metric"><div class="metric-label" style="color:var(--green)">${T('freeCount')}</div><div class="metric-val" style="color:var(--green);font-size:22px">${tables.filter(t=>t.status==='free').length}</div></div>
+      <div class="metric"><div class="metric-label" style="color:var(--pink)">${T('reserved2')}</div><div class="metric-val" style="color:var(--pink);font-size:22px">${tables.filter(t=>t.status==='reserved').length}</div></div>
     </div>
   </div>`;
 
   c.innerHTML = live + `
-  <div class="card">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('period')}</div>
-    <div class="toggle" style="margin-bottom:10px">
-      ${['today','week','month','year'].map(p=>`<button class="toggle-btn ${analyticsTab===p?'active':''}" onclick="setAnalyticsPreset('${p}')">${T(p)}</button>`).join('')}
+  <div class="card" style="border-radius:28px">
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;text-transform:uppercase;letter-spacing:1.5px">${T('period')}</div>
+    <div class="toggle" style="margin-bottom:16px;flex-wrap:wrap">
+      ${['today','week','month','year'].map(p=>`<button class="toggle-btn ${analyticsTab===p?'active':''}" onclick="setAnalyticsPreset('${p}')" style="border-radius:40px">${T(p)}</button>`).join('')}
     </div>
     <div class="date-range">
-      <div style="flex:1"><label class="lbl">${T('from')}</label><input type="date" class="inp" value="${analyticsFrom}" onchange="analyticsFrom=this.value"/></div>
-      <div style="flex:1"><label class="lbl">${T('to')}</label><input type="date" class="inp" value="${analyticsTo}" onchange="analyticsTo=this.value"/></div>
+      <div class="date-item"><label class="lbl">${T('from')}</label><input type="date" class="inp" id="analytics-from" value="${analyticsFrom}" style="border-radius:40px;font-size:12px;text-align:center" lang="ru"/></div>
+      <div class="date-item"><label class="lbl">${T('to')}</label><input type="date" class="inp" id="analytics-to" value="${analyticsTo}" style="border-radius:40px;font-size:12px;text-align:center" lang="ru"/></div>
     </div>
-    <button class="btn btn-gold" onclick="doLoadAnalytics()">${lang==='ru'?'Показать':'Show'}</button>
+    <button class="btn btn-gold" onclick="doLoadAnalyticsFromDates()" style="border-radius:40px">${lang==='ru'?'Показать':'Show'}</button>
   </div>
   <div id="analytics-results"><div class="loader">${lang==='ru'?'Выберите период и нажмите Показать':'Select period and click Show'}</div></div>`;
 }
 
+async function loadAnalytics(from, to) {
+  try {
+    const {data:payments} = await sb.from('payments')
+      .select('*, waiters(name)')
+      .gte('paid_at', from+'T00:00:00')
+      .lte('paid_at', to+'T23:59:59')
+      .order('paid_at', {ascending:false});
+    analyticsData = payments||[];
+    renderAnalytics();
+  } catch (error) {
+    console.error('Erreur chargement analytics:', error);
+    toast(lang === 'ru' ? 'Erreur chargement analytics' : 'Analytics loading error');
+  }
+}
+
 function renderAnalytics() {
-  const el = $('analytics-results'); if(!el) return;
-  if(!analyticsData){ el.innerHTML=`<div class="loader">${lang==='ru'?'Нет данных':'No data'}</div>`; return; }
+  const el = $('analytics-results'); 
+  if(!el) return;
+  
+  if(!analyticsData || analyticsData.length===0){ 
+    el.innerHTML=`<div class="loader">${T('noAnalytics')}</div>`; 
+    return; 
+  }
 
   const total = analyticsData.reduce((s,p)=>s+p.total_final,0);
+  const avgCheck = total / analyticsData.length;
   const cash  = analyticsData.filter(p=>p.payment_method==='cash').reduce((s,p)=>s+p.total_final,0);
   const card  = analyticsData.filter(p=>p.payment_method==='card').reduce((s,p)=>s+p.total_final,0);
+  
+  const byWaiter = {};
+  analyticsData.forEach(p => {
+    const name = p.waiters?.name || 'Unknown';
+    byWaiter[name] = (byWaiter[name] || 0) + p.total_final;
+  });
 
   el.innerHTML = `
-  <div style="display:flex;gap:10px;margin-bottom:10px">
-    <div class="metric"><div class="metric-label">${T('revenue')}</div><div class="metric-val" style="font-size:18px;color:var(--gold)">${fmtRub(total)}</div></div>
-    <div class="metric"><div class="metric-label">${T('orders')}</div><div class="metric-val">${analyticsData.length}</div></div>
+  <div class="card" style="border-radius:28px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:14px;color:var(--gold)">📊 ${T('totalRevenue')}</div>
+    <div style="font-size:32px;font-weight:800;color:var(--gold);margin-bottom:14px">${fmtRub(total)}</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <div class="metric"><div class="metric-label">${T('checksCount')}</div><div class="metric-val" style="font-size:20px">${analyticsData.length}</div></div>
+      <div class="metric"><div class="metric-label">${T('avgCheck')}</div><div class="metric-val" style="font-size:20px">${fmtRub(avgCheck)}</div></div>
+    </div>
   </div>
-  <div style="display:flex;gap:10px;margin-bottom:14px">
-    <div class="metric"><div class="metric-label">💵 ${T('cash')}</div><div class="metric-val" style="font-size:15px">${fmtRub(cash)}</div></div>
-    <div class="metric"><div class="metric-label">💳 ${T('card')}</div><div class="metric-val" style="font-size:15px">${fmtRub(card)}</div></div>
+  
+  <div class="card" style="border-radius:28px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:14px;color:var(--gold)">💰 ${T('salesByWaiter')}</div>
+    <div style="overflow-x:auto">
+      <table class="stats-table">
+        <thead><tr><th>${lang==='ru'?'Официант':'Waiter'}</th><th>${T('revenue')}</th><th>${T('bonus')}</th></tr></thead>
+        <tbody>
+          ${Object.entries(byWaiter).map(([name,sales])=>`
+          <tr><td style="font-weight:600">👤 ${name}</td><td style="color:var(--gold);font-weight:700">${fmtRub(sales)}</td><td style="color:var(--green)">${fmtRub(sales*0.025)}</td></tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
   </div>
-  <div class="card">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${T('salesByWaiter')}</div>
-    ${Object.entries(byWaiter).map(([name,sales])=>`
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div><div style="font-size:14px">👤 ${name}</div><div style="font-size:12px;color:var(--muted)">${fmtRub(sales)}</div></div>
-      <div style="text-align:right"><div style="font-size:14px;color:var(--green)">${fmtRub(sales*0.025)}</div><div style="font-size:11px;color:var(--muted)">2,5%</div></div>
-    </div>`).join('')}
+  
+  <div class="card" style="border-radius:28px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:14px;color:var(--gold)">💳 ${lang==='ru'?'По способам оплаты':'By payment method'}</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <div class="metric"><div class="metric-label">💵 ${T('cash')}</div><div class="metric-val" style="font-size:18px">${fmtRub(cash)}</div></div>
+      <div class="metric"><div class="metric-label">💳 ${T('card')}</div><div class="metric-val" style="font-size:18px">${fmtRub(card)}</div></div>
+    </div>
   </div>
-  <div style="display:flex;gap:10px;margin-bottom:14px">
-    <button class="btn btn-outline-gold btn-sm" onclick="exportCSV()" style="flex:1">↓ CSV</button>
+  
+  <div style="margin-bottom:20px">
+    <button class="btn btn-gold" onclick="exportToCSV()" style="border-radius:40px">📊 ${T('exportCSV')}</button>
   </div>
-  <div class="card">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${lang==='ru'?'Последние платежи':'Recent payments'}</div>
-    ${analyticsData.slice(0,10).map(p=>`
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-      <div>
-        <div>${T('table')} №${p.table_id} · ${p.waiters?.name||'?'}</div>
-        <div style="color:var(--muted)">${new Date(p.paid_at).toLocaleString()}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="color:var(--gold)">${p.total_final} ₽</div>
-        <div style="color:var(--muted)">${p.payment_method==='cash'?'💵':'💳'}${p.discount>0?' -'+p.discount+'%':''}</div>
-      </div>
-    </div>`).join('')}
+  
+  <div class="card" style="border-radius:28px">
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;text-transform:uppercase;letter-spacing:1.5px">${lang==='ru'?'Последние платежи':'Recent payments'}</div>
+    <div style="overflow-x:auto">
+      ${analyticsData.slice(0,10).map(p=>`
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:600">${T('table')} №${p.table_id} · ${p.waiters?.name||'?'}</div>
+          <div style="color:var(--text-secondary);font-size:11px">${new Date(p.paid_at).toLocaleString()}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="color:var(--gold);font-weight:700">${p.total_final} ₽</div>
+          <div style="color:var(--text-secondary);font-size:11px">${p.payment_method==='cash'?'💵':'💳'}${p.discount>0?' -'+p.discount+'%':''}</div>
+        </div>
+      </div>`).join('')}
+    </div>
   </div>`;
 }
 
-// ── Action handlers ──
-function setTab(t){ tab=t; selTable=null; addingTo=null; расчётTable=null; billTable=null; tableDetailId=null; if(t==='bron') bronTab='list'; renderMain(); }
-function setViewMode(m){ viewMode=m; selTable=null; renderContent(); }
-// Click on floor plan table → show popup (not detail directly)
-function selTableClick(id){
-  selTable = selTable===id ? null : id;
-  renderContent();
+// ===== ACTION HANDLERS =====
+function setTab(t){ 
+  tab=t; 
+  selTable=null; 
+  addingTo=null; 
+  расчётTable=null; 
+  billTable=null; 
+  tableDetailId=null; 
+  if(t==='bron') bronTab='list'; 
+  renderMain(); 
 }
-function startAddOrder(id){ addingTo=id; menuSearch=''; renderContent(); }
+
+function setViewMode(m){ 
+  viewMode=m; 
+  savePreferences();
+  selTable=null; 
+  renderContent(); 
+}
+
+function selTableClick(id){ selTable = selTable===id ? null : id; renderContent(); }
+function startAddOrder(id){ addingTo=id; menuSearchTemp = ''; renderContent(); }
 function setAddingTo(v){ addingTo=v; renderContent(); }
-function setMenuSearch(v){ menuSearch=v; renderContent(); }
-function setMenuCat(v){ menuCat=v; renderContent(); }
 function startRaschet(id){ расчётTable=id; selTable=null; renderContent(); }
 function setRaschet(v){ расчётTable=v; renderContent(); }
 function goBill(id){ billTable=id; расчётTable=null; payMethod=null; cashGiven=''; renderContent(); }
@@ -1030,8 +2300,13 @@ function closeTableDetail(){ tableDetailId=null; renderContent(); }
 function setTableDetailTab(t){ tableDetailTab=t; renderContent(); }
 function setBronTab(t){ bronTab=t; renderContent(); }
 function setBronTableId(id){ bronTableId=id; renderContent(); }
-function setSearchBron(v){ searchBron=v; renderContent(); }
-function startNewBron(id){ bronTableId=id; bronForm={name:'',phone:'',guests:'2',time:'19:00',note:''}; tab='bron'; bronTab='new'; renderMain(); }
+function startNewBron(id){ 
+  bronTableId=id; 
+  bronForm={name:'', phone:'', guests:'2', date:'', time:'19:00', note:''}; 
+  tab='bron'; 
+  bronTab='new'; 
+  renderMain(); 
+}
 function doLogout(){ waiter=null; screen='login'; if(subTables) sb.removeChannel(subTables); render(); }
 
 function setAnalyticsPreset(p){
@@ -1043,23 +2318,40 @@ function setAnalyticsPreset(p){
   else if(p==='month'){ const d=new Date(today); d.setMonth(d.getMonth()-1); analyticsFrom=fmt(d); analyticsTo=fmt(today); }
   else if(p==='year'){ const d=new Date(today); d.setFullYear(d.getFullYear()-1); analyticsFrom=fmt(d); analyticsTo=fmt(today); }
   renderContent();
+  doLoadAnalytics(analyticsFrom, analyticsTo);
+}
+
+async function doLoadAnalyticsFromDates(){
+  const from = document.getElementById('analytics-from')?.value;
+  const to = document.getElementById('analytics-to')?.value;
+  if(from) analyticsFrom = from;
+  if(to) analyticsTo = to;
+  await doLoadAnalytics(analyticsFrom, analyticsTo);
+}
+
+async function doLoadAnalytics(from, to){
+  const el=$('analytics-results');
+  if(el) el.innerHTML=`<div class="loader">${lang==='ru'?'Загрузка...':'Loading...'}</div>`;
+  await loadAnalytics(from, to);
 }
 
 async function doAddOrder(id,ru,en,price,cat){
   const item={id,ru,en,price,cat};
   const t=tables.find(t=>t.id===addingTo);
   const ex=t?.orders?.find(o=>o.item_id===id);
-  if(ex){ await sb.from('orders').update({qty:ex.qty+1}).eq('id',ex.id); await sb.from('tables').update({status:'occupied',waiter_id:waiter.id}).eq('id',addingTo); }
-  else { await dbAddOrder(addingTo,item,cat); }
-  await loadTables(); renderContent();
-}
-
-async function doRemoveOrder(orderId,tableId){
-  await dbRemoveOrder(orderId,tableId); renderContent();
+  if(ex){ 
+    await sb.from('orders').update({qty:ex.qty+1}).eq('id',ex.id); 
+    await sb.from('tables').update({status:'occupied', waiter_id:waiter.id}).eq('id',addingTo); 
+    await loadTables();
+    renderContent();
+  } else { 
+    await dbAddOrder(addingTo,item,cat); 
+  }
 }
 
 async function doSetDiscount(tableId,pct){
-  await dbSetDiscount(tableId,pct===tables.find(t=>t.id===tableId)?.discount?0:pct); renderContent();
+  await dbSetDiscount(tableId, pct===tables.find(t=>t.id===tableId)?.discount?0:pct); 
+  renderContent();
 }
 
 async function doConfirmPay(){
@@ -1067,62 +2359,65 @@ async function doConfirmPay(){
   const t=tables.find(t=>t.id===billTable);
   const raw=tableTotal(t,false), disc=tableTotal(t,true);
   const given=parseFloat(cashGiven)||0, chg=given-disc;
-  if(payMethod==='cash'&&given<disc) return;
-  await dbConfirmPay(billTable,payMethod,raw,disc,t.discount,given,chg);
+  if(payMethod==='cash' && given<disc) return;
+  
+  await dbConfirmPay(billTable,payMethod,raw,disc,t.discount,given,chg,null);
   toast(lang==='ru'?'✅ Стол закрыт':'✅ Table closed');
   billTable=null; payMethod=null; cashGiven=''; selTable=null; tab='tables';
   renderMain();
 }
 
-async function doSaveBron(){
-  if(!bronForm.name){ toast(lang==='ru'?'⚠️ Введите имя гостя':'⚠️ Enter guest name'); return; }
+async function doSaveBronFromForm(){
+  const name = document.getElementById('bron-name')?.value;
+  const phone = document.getElementById('bron-phone')?.value;
+  const date = document.getElementById('bron-date')?.value;
+  const time = document.getElementById('bron-time')?.value;
+  const guests = document.getElementById('bron-guests')?.value;
+  const note = document.getElementById('bron-note')?.value;
+  
+  if(!name){ toast(lang==='ru'?'⚠️ Введите имя гостя':'⚠️ Enter guest name'); return; }
   if(!bronTableId){ toast(lang==='ru'?'⚠️ Выберите стол':'⚠️ Select a table'); return; }
+  if(!date){ toast(lang==='ru'?'⚠️ Выберите дату':'⚠️ Select date'); return; }
+  if(!time){ toast(lang==='ru'?'⚠️ Выберите время':'⚠️ Select time'); return; }
+  
+  if(!isWorkingHours(time)){
+    toast(lang==='ru'?'❌ Ресторан работает с 12:00 до 03:00':'❌ Restaurant works from 12:00 to 03:00');
+    return;
+  }
+  
   try {
-    await dbSaveBron(bronTableId, bronForm);
-    bronForm={name:'',phone:'',guests:'2',time:'19:00',note:'',date:''};
-    bronTableId=null; bronTab='list';
-    toast(lang==='ru'?'✅ Бронь сохранена':'✅ Booking saved');
-    tab='bron'; renderMain();
+    await dbSaveBron(bronTableId, {name, phone, date, time, guests, note});
+    bronForm={name:'', phone:'', guests:'2', date:'', time:'19:00', note:''};
+    bronTableId=null; 
+    bronTab='list';
+    toast(lang==='ru'?'✅ Бронь сохранена ✅ Client ajouté à la base' : '✅ Booking saved ✅ Client added to database');
+    tab='bron'; 
+    renderMain();
   } catch(e){
-    toast('❌ Ошибка: '+e.message);
+    if (e.message === 'Double booking') {
+      toast(lang==='ru'?'❌ На эту таблицу уже есть бронь на это время':'❌ This table is already booked for this time');
+    } else {
+      toast('❌ Error: '+e.message);
+    }
   }
 }
 
 async function doOpenTable(id){
   await dbOpenTable(id);
-  toast(lang==='ru'?'✅ Стол открыт':'✅ Table opened');
-  tableDetailId=null; renderContent();
+  toast(lang==='ru'?'✅ Стол ouvert, vous pouvez prendre la commande':'✅ Table opened, you can take orders');
+  tableDetailId=null;
+  addingTo = id;
+  renderContent();
 }
 
 async function doCancelBron(bronId,tableId){
   await dbCancelBron(bronId,tableId);
-  toast(lang==='ru'?'Бронь отменена':'Booking cancelled');
+  toast(lang==='ru'?'Бронь annulée':'Booking cancelled');
   renderContent();
 }
 
-async function doLoadAnalytics(){
-  const el=$('analytics-results');
-  if(el) el.innerHTML=`<div class="loader">${lang==='ru'?'Загрузка...':'Loading...'}</div>`;
-  await loadAnalytics(analyticsFrom,analyticsTo);
-}
-
-// Number format Russian style: space as thousands separator
-const fmtRub = n => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ') + ' ₽';
-function formatPhone(input) {
-  let v = input.value.replace(/\D/g,'');
-  if(v.startsWith('8')) v='7'+v.slice(1);
-  if(!v.startsWith('7')) v='7'+v;
-  v=v.slice(0,11);
-  let f='+7';
-  if(v.length>1) f+=' '+v.slice(1,4);
-  if(v.length>4) f+=' '+v.slice(4,7);
-  if(v.length>7) f+=' '+v.slice(7,9);
-  if(v.length>9) f+=' '+v.slice(9,11);
-  input.value=f;
-  bronForm.phone=f;
-}
-
-// Phone formatter — Russian format +7 xxx xxx xx xx
+// ===== INITIALIZATION =====
+loadPreferences();
 render();
 </script>
 </body>
