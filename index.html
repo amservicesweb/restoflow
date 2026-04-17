@@ -74,17 +74,6 @@
         --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      input[type="date"],
-      input[type="time"] {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 100%;
-        box-sizing: border-box;
-        font-size: 13px !important;
-        padding: 12px 8px !important;
-        text-align: center;
-      }
-
       input,
       button,
       select,
@@ -112,37 +101,17 @@
         }
         .date-range {
           flex-direction: column;
-          gap: 8px;
+          gap: 10px;
         }
         .date-item {
-          width: 100%;
-          flex: none;
-          min-width: 0;
-        }
-        .date-item .inp {
-          width: 100%;
-          box-sizing: border-box;
-          font-size: 13px;
-          text-align: center;
-          padding-left: 8px;
-          padding-right: 8px;
+          min-width: 100%;
         }
         .equal-row {
-          flex-direction: row;
-          gap: 8px;
+          flex-direction: column;
+          gap: 12px;
         }
         .equal-item {
-          flex: 1;
-          min-width: 0;
-          overflow: hidden;
-        }
-        .equal-item .inp {
-          width: 100%;
-          box-sizing: border-box;
-          font-size: 13px;
-          padding-left: 8px;
-          padding-right: 8px;
-          text-align: center;
+          min-width: 100%;
         }
         .table-buttons {
           gap: 8px;
@@ -628,8 +597,7 @@
 
       .date-item {
         flex: 1;
-        min-width: 0;
-        overflow: hidden;
+        min-width: 130px;
       }
 
       .equal-row {
@@ -1273,12 +1241,7 @@
             orders: t.orders||[],
             brons: (brons||[]).filter(b=>b.table_id===t.id && b.status === 'active')
           }));
-          // Si déjà connecté, juste mettre à jour le contenu (pas tout re-render)
-          if (screen === 'main' && $('content')) {
-            renderContent();
-          } else {
-            render();
-          }
+          render();
         }
       }
 
@@ -1297,106 +1260,187 @@
       }
 
       // ===== DB ACTIONS =====
-      async function dbAddOrder(tableId, item, cat) {
-        await sb.from('orders').insert({
-          table_id:tableId, waiter_id:waiter.id,
-          item_id:item.id, item_name_ru:item.ru, item_name_en:item.en,
-          category:cat, price:item.price, qty:1
+      // ===== OPTIMISTIC UPDATE HELPER =====
+      // Met à jour le state local immédiatement, sync Supabase en arrière-plan
+      function updateTableLocally(tableId, updater) {
+        tables = tables.map(t => t.id === tableId ? {...t, ...updater(t)} : t);
+        renderContent();
+      }
+
+      // Sync en arrière-plan sans bloquer l'UI
+      function syncBackground(fn) {
+        fn().catch(err => {
+          console.error('Sync error:', err);
+          // En cas d'erreur, recharger depuis Supabase
+          loadTables();
         });
-        await sb.from('tables').update({status:'occupied', waiter_id:waiter.id}).eq('id',tableId);
-        await loadTables();
+      }
+
+      async function dbAddOrder(tableId, item, cat) {
+        // Optimistic: ajouter l'item localement immédiatement
+        const tempId = 'temp_' + Date.now();
+        updateTableLocally(tableId, t => ({
+          status: 'occupied',
+          waiter_id: waiter.id,
+          orders: [...(t.orders||[]), {
+            id: tempId,
+            item_id: item.id,
+            item_name_ru: item.ru,
+            item_name_en: item.en,
+            category: cat,
+            price: item.price,
+            qty: 1
+          }]
+        }));
+        // Sync Supabase en arrière-plan
+        syncBackground(async () => {
+          await sb.from('orders').insert({
+            table_id:tableId, waiter_id:waiter.id,
+            item_id:item.id, item_name_ru:item.ru, item_name_en:item.en,
+            category:cat, price:item.price, qty:1
+          });
+          await sb.from('tables').update({status:'occupied', waiter_id:waiter.id}).eq('id',tableId);
+          await loadTables();
+        });
       }
 
       async function dbUpdateOrderQty(orderId, newQty, tableId) {
         if (newQty <= 0) {
           await dbRemoveOrder(orderId, tableId);
         } else {
-          await sb.from('orders').update({qty:newQty}).eq('id',orderId);
-          await loadTables();
+          // Optimistic
+          updateTableLocally(tableId, t => ({
+            orders: (t.orders||[]).map(o => o.id===orderId ? {...o, qty:newQty} : o)
+          }));
+          syncBackground(async () => {
+            await sb.from('orders').update({qty:newQty}).eq('id',orderId);
+            await loadTables();
+          });
         }
       }
 
       async function dbRemoveOrder(orderId, tableId) {
-        await sb.from('orders').delete().eq('id',orderId);
         const t = tables.find(t=>t.id===tableId);
         const remaining = (t.orders||[]).filter(o=>o.id!==orderId);
-        if(remaining.length===0){
-          await sb.from('tables').update({status:'free', waiter_id:null, discount:0}).eq('id',tableId);
-        }
-        await loadTables();
+        // Optimistic
+        updateTableLocally(tableId, t => ({
+          orders: remaining,
+          status: remaining.length===0 ? 'free' : t.status,
+          waiter_id: remaining.length===0 ? null : t.waiter_id,
+          discount: remaining.length===0 ? 0 : t.discount,
+        }));
+        syncBackground(async () => {
+          await sb.from('orders').delete().eq('id',orderId);
+          if(remaining.length===0){
+            await sb.from('tables').update({status:'free', waiter_id:null, discount:0}).eq('id',tableId);
+          }
+          await loadTables();
+        });
       }
 
       async function dbSetDiscount(tableId, pct) {
-        await sb.from('tables').update({discount:pct}).eq('id',tableId);
-        await loadTables();
+        // Optimistic
+        updateTableLocally(tableId, t => ({discount: pct}));
+        syncBackground(async () => {
+          await sb.from('tables').update({discount:pct}).eq('id',tableId);
+          await loadTables();
+        });
       }
 
       async function dbConfirmPay(tableId, method, raw, final, disc, given, chg, clientPhone) {
-        const t = tables.find(t=>t.id===tableId);
-        console.log('=== PAIEMENT ===');
-        console.log('tableId:', tableId);
-        console.log('method:', method);
-        console.log('final:', final);
-
-        await sb.from('payments').insert({
+        // Optimistic: vider la table immédiatement
+        updateTableLocally(tableId, t => ({
+          status:'free', waiter_id:null, discount:0, orders:[]
+        }));
+        // Sync Supabase (doit être attendu pour garantir l'enregistrement)
+        const {error} = await sb.from('payments').insert({
           table_id: tableId,
           waiter_id: waiter.id,
           total_final: final,
           payment_method: method,
           paid_at: nowMoscow()
         });
-
-        await sb.from('orders').delete().eq('table_id', tableId);
-        await sb.from('tables').update({status:'free', waiter_id:null, discount:0}).eq('id', tableId);
-        await loadTables();
+        if (error) {
+          toast('❌ ' + (lang==='ru' ? 'Ошибка сохранения' : 'Save error'));
+          await loadTables();
+          return;
+        }
+        syncBackground(async () => {
+          await sb.from('orders').delete().eq('table_id', tableId);
+          await sb.from('tables').update({status:'free', waiter_id:null, discount:0}).eq('id', tableId);
+          await loadTables();
+        });
       }
 
       async function dbSaveBron(tableId, form) {
-        // Bloquer si la table a déjà une résa active pour cette date (peu importe l'heure)
+        // Vérif double booking (doit attendre Supabase)
         const {data: existing} = await sb.from('brons')
-          .select('*')
+          .select('id, arrival_time')
           .eq('table_id', tableId)
           .eq('status', 'active')
           .eq('arrival_date', form.date);
         if (existing && existing.length > 0) {
-          const t = existing[0].arrival_time || '';
-          throw new Error('Double booking:' + t);
+          throw new Error('Double booking:' + (existing[0].arrival_time||''));
         }
-
-        await sb.from('brons').insert({
-          table_id:tableId,
-          guest_name:form.name,
-          guest_phone:form.phone,
-          guests_count:parseInt(form.guests)||1,
-          arrival_date:form.date,
-          arrival_time:form.time,
-          note:form.note,
-          status:'active',
-          created_by: waiter.id
+        // Optimistic
+        const tempBron = {
+          id: 'temp_' + Date.now(),
+          table_id: tableId,
+          guest_name: form.name,
+          guest_phone: form.phone,
+          guests_count: parseInt(form.guests)||1,
+          arrival_date: form.date,
+          arrival_time: form.time,
+          note: form.note,
+          status: 'active'
+        };
+        tables = tables.map(t => t.id===tableId ? {
+          ...t,
+          status:'reserved',
+          brons:[...(t.brons||[]), tempBron]
+        } : t);
+        renderContent();
+        // Sync arrière-plan
+        syncBackground(async () => {
+          await sb.from('brons').insert({
+            table_id:tableId, guest_name:form.name, guest_phone:form.phone,
+            guests_count:parseInt(form.guests)||1, arrival_date:form.date,
+            arrival_time:form.time, note:form.note, status:'active', created_by:waiter.id
+          });
+          await sb.from('tables').update({status:'reserved'}).eq('id',tableId);
+          await loadTables();
         });
-        await sb.from('tables').update({status:'reserved'}).eq('id',tableId);
-
-        await loadTables();
       }
 
       async function dbOpenTable(tableId) {
-        await sb.from('brons').update({status:'opened'}).eq('table_id',tableId).eq('status','active');
-        await sb.from('tables').update({status:'occupied', waiter_id:waiter.id}).eq('id',tableId);
-        await loadTables();
+        // Optimistic
+        updateTableLocally(tableId, t => ({
+          status:'occupied', waiter_id:waiter.id,
+          brons:(t.brons||[]).map(b=>({...b,status:'opened'}))
+        }));
+        syncBackground(async () => {
+          await sb.from('brons').update({status:'opened'}).eq('table_id',tableId).eq('status','active');
+          await sb.from('tables').update({status:'occupied', waiter_id:waiter.id}).eq('id',tableId);
+          await loadTables();
+        });
       }
 
       async function dbCancelBron(bronId, tableId) {
-        await sb.from('brons').update({status:'cancelled'}).eq('id', bronId);
-        // Vérifier dans Supabase (pas le state local) s'il reste des réservations actives
-        const {data: remaining} = await sb.from('brons')
-          .select('id')
-          .eq('table_id', tableId)
-          .eq('status', 'active')
-          .neq('id', bronId);
-        if (!remaining || remaining.length === 0) {
-          await sb.from('tables').update({status:'free'}).eq('id', tableId);
-        }
-        await loadTables();
+        const t = tables.find(t=>t.id===tableId);
+        const remaining = (t.brons||[]).filter(b=>b.id!==bronId && b.status==='active');
+        // Optimistic
+        updateTableLocally(tableId, t => ({
+          brons: (t.brons||[]).map(b=>b.id===bronId ? {...b,status:'cancelled'} : b),
+          status: remaining.length===0 ? 'free' : t.status
+        }));
+        syncBackground(async () => {
+          await sb.from('brons').update({status:'cancelled'}).eq('id',bronId);
+          const {data:rem} = await sb.from('brons').select('id').eq('table_id',tableId).eq('status','active').neq('id',bronId);
+          if(!rem||rem.length===0){
+            await sb.from('tables').update({status:'free'}).eq('id',tableId);
+          }
+          await loadTables();
+        });
       }
 
       // ===== EXPORT EXCEL =====
@@ -2339,45 +2383,53 @@
       }
 
       async function doAddOrder(id,ru,en,price,cat){
-        await withLock(async () => {
-          const item={id,ru,en,price,cat};
-          const t=tables.find(t=>t.id===addingTo);
-          const ex=t?.orders?.find(o=>o.item_id===id);
-          if(ex){
+        if(_actionLock) return;
+        const item={id,ru,en,price,cat};
+        const t=tables.find(t=>t.id===addingTo);
+        const ex=t?.orders?.find(o=>o.item_id===id);
+        if(ex){
+          // Optimistic: incrémenter localement
+          updateTableLocally(addingTo, t => ({
+            orders:(t.orders||[]).map(o=>o.item_id===id?{...o,qty:o.qty+1}:o)
+          }));
+          syncBackground(async ()=>{
             await sb.from('orders').update({qty:ex.qty+1}).eq('id',ex.id);
-            await sb.from('tables').update({status:'occupied', waiter_id:waiter.id}).eq('id',addingTo);
+            await sb.from('tables').update({status:'occupied',waiter_id:waiter.id}).eq('id',addingTo);
             await loadTables();
-            renderContent();
-          } else {
-            await dbAddOrder(addingTo,item,cat);
-          }
-        });
+          });
+        } else {
+          await dbAddOrder(addingTo,item,cat);
+        }
       }
 
       async function doSetDiscount(tableId,pct){
-        await dbSetDiscount(tableId, pct===tables.find(t=>t.id===tableId)?.discount?0:pct);
-        renderContent();
+        const newPct = pct===tables.find(t=>t.id===tableId)?.discount?0:pct;
+        dbSetDiscount(tableId, newPct); // optimistic, pas d'await
       }
 
       async function doConfirmPay(){
         if(_actionLock) return;
         if(!payMethod) return;
+        _actionLock = true;
         const t=tables.find(t=>t.id===billTable);
         const raw=tableTotal(t,false), disc=tableTotal(t,true);
         const given=parseFloat(cashGiven)||0, chg=given-disc;
-        if(payMethod==='cash' && given<disc) return;
-        await withLock(async () => {
-          const btn = document.querySelector('[onclick="doConfirmPay()"]');
-          if(btn){ btn.disabled=true; btn.style.opacity='0.5'; }
-          await dbConfirmPay(billTable,payMethod,raw,disc,t.discount,given,chg,null);
-          toast(lang==='ru'?'✅ Стол закрыт':'✅ Table closed');
-          billTable=null; payMethod=null; cashGiven=''; selTable=null; tab='tables';
-          renderMain();
-        });
+        if(payMethod==='cash' && given<disc){ _actionLock=false; return; }
+        // Naviguer immédiatement
+        const savedBillTable=billTable, savedMethod=payMethod, savedRaw=raw, savedDisc=disc;
+        const savedTDisc=t.discount;
+        toast(lang==='ru'?'✅ Стол закрыт':'✅ Table closed');
+        billTable=null; payMethod=null; cashGiven=''; selTable=null; tab='tables';
+        renderMain();
+        // Sync en arrière-plan
+        try {
+          await dbConfirmPay(savedBillTable,savedMethod,savedRaw,savedDisc,savedTDisc,given,chg,null);
+        } finally {
+          _actionLock = false;
+        }
       }
 
       async function doSaveBronFromForm(){
-        if(_actionLock) return;
         const name = document.getElementById('bron-name')?.value;
         const phone = document.getElementById('bron-phone')?.value;
         const date = document.getElementById('bron-date')?.value;
@@ -2390,38 +2442,34 @@
         if(!date){ toast(lang==='ru'?'⚠️ Выберите дату':'⚠️ Select date'); return; }
         if(!time){ toast(lang==='ru'?'⚠️ Выберите время':'⚠️ Select time'); return; }
 
+        if(_actionLock) return;
         if(!isWorkingHours(time)){
           toast(lang==='ru'?'❌ Ресторан работает с 12:00 до 03:00':'❌ Restaurant works from 12:00 to 03:00');
           return;
         }
 
-        const saveBtn = document.querySelector('[onclick="doSaveBronFromForm()"]');
-        if(saveBtn){ saveBtn.disabled=true; saveBtn.style.opacity='0.5'; }
-        await withLock(async () => {
-          try {
-            await dbSaveBron(bronTableId, {name, phone, date, time, guests, note});
-            bronForm={name:'', phone:'', guests:'2', date:'', time:'19:00', note:''};
-            bronTableId=null;
-            bronTab='list';
-            toast(lang==='ru'?'✅ Бронь сохранена':'✅ Booking saved');
-            tab='bron';
-            renderMain();
-          } catch(e){
-            if(saveBtn){ saveBtn.disabled=false; saveBtn.style.opacity='1'; }
-            if (e.message && e.message.startsWith('Double booking')) {
-              const existTime = e.message.split(':')[1] || '';
-              toast(lang==='ru'
-                ? ('❌ Стол №' + bronTableId + ' уже забронирован' + (existTime ? ' в ' + existTime : '') + ' на эту дату')
-                : ('❌ Table #' + bronTableId + ' already booked' + (existTime ? ' at ' + existTime : '') + ' on this date'));
-            } else {
-              toast('❌ Error: '+e.message);
-            }
+        try {
+          await dbSaveBron(bronTableId, {name, phone, date, time, guests, note});
+          bronForm={name:'', phone:'', guests:'2', date:'', time:'19:00', note:''};
+          bronTableId=null;
+          bronTab='list';
+          toast(lang==='ru'?'✅ Бронь сохранена':'✅ Booking saved');
+          tab='bron';
+          renderMain();
+        } catch(e){
+          if (e.message && e.message.startsWith('Double booking')) {
+            const existTime = e.message.split(':')[1] || '';
+            toast(lang==='ru'
+              ? ('❌ Стол №' + bronTableId + ' уже забронирован' + (existTime ? ' в ' + existTime : '') + ' на эту дату')
+              : ('❌ Table #' + bronTableId + ' already booked' + (existTime ? ' at ' + existTime : '') + ' on this date'));
+          } else {
+            toast('❌ Error: '+e.message);
           }
-        });
+        }
       }
 
       async function doOpenTable(id){
-        await dbOpenTable(id);
+        dbOpenTable(id); // optimistic, pas d'await
         toast(lang==='ru'?'✅ Стол открыт, можно принимать заказ':'✅ Table opened, you can take orders');
         tableDetailId=null;
         addingTo = id;
@@ -2429,9 +2477,8 @@
       }
 
       async function doCancelBron(bronId,tableId){
-        await dbCancelBron(bronId,tableId);
+        dbCancelBron(bronId,tableId); // optimistic, pas d'await
         toast(lang==='ru'?'Бронь отменена':'Booking cancelled');
-        renderContent();
       }
 
       // ===== INITIALIZATION =====
