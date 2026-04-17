@@ -1182,6 +1182,9 @@
       const NO_DISC = ['shisha'];
 
       // ===== TRANSLATIONS =====
+      // NOTE: Ajouter la table 8 (Bar) dans Supabase :
+      // INSERT INTO tables (id, status) VALUES (8, 'free');
+
       const T = k => lang === 'ru' ? ({
         tables:'Столики', bron:'Бронь', analytics:'Аналитика',
         free:'Свободен', occupied:'Занят', reserved:'Забронирован',
@@ -1735,6 +1738,7 @@
           {id:1, x:rx, y:60,  w:TW+22, h:TH, shape:'rect'},
           {id:2, x:rx, y:150, w:TW+22, h:TH, shape:'rect'},
           {id:3, x:rx, y:240, w:TW+22, h:TH, shape:'rounded'},
+          {id:8, x:90,  y:H-52, w:164, h:18, shape:'bar'},
         ];
 
         const shapes=tcs.map(tc=>{
@@ -1747,24 +1751,34 @@
             sofasSVG=chair(tc.x-12,tc.y+8,10,20,col)+chair(tc.x+tc.w+2,tc.y+8,10,20,col);
           } else if(tc.shape==='vertical'){
             sofasSVG=sofaVertical(tc.x-SF-1,tc.y,SF,tc.h,col)+sofaVertical(tc.x+tc.w+1,tc.y,SF,tc.h,col);
+          } else if(tc.shape==='bar'){
+            // 4 tabourets au-dessus du bar
+            const sw=12, sg=(tc.w-4*sw)/5;
+            sofasSVG=[0,1,2,3].map(i=>`<ellipse cx="${tc.x+sg+(sw/2)+i*(sw+sg)}" cy="${tc.y-8}" rx="${sw/2}" ry="5" fill="${col}" fill-opacity="0.2" stroke="${col}" stroke-width="0.8" stroke-opacity="0.6"/>`).join('');
           } else {
             sofasSVG=sofaHorizontal(tc.x,tc.y-SF-1,tc.w,SF,col)+sofaHorizontal(tc.x,tc.y+tc.h+1,tc.w,SF,col);
           }
 
           const shadow=tc.shape==='round'
             ?`<circle cx="${tc.x+tc.w/2+2}" cy="${tc.y+tc.h/2+3}" r="${tc.w/2}" fill="#000" opacity="0.25"/>`
+            :tc.shape==='bar'
+            ?''
             :`<rect x="${tc.x+3}" y="${tc.y+3}" width="${tc.w}" height="${tc.h}" rx="${tc.shape==='rounded'?8:5}" fill="#000" opacity="0.25"/>`;
 
           const tableShape=tc.shape==='round'
             ?`<circle cx="${tc.x+tc.w/2}" cy="${tc.y+tc.h/2}" r="${tc.w/2}" fill="#1e1e1e" stroke="${col}" stroke-width="2"/>`
             :tc.shape==='vertical'
             ?`<rect x="${tc.x}" y="${tc.y}" width="${tc.w}" height="${tc.h}" rx="5" fill="#1e1e1e" stroke="${col}" stroke-width="2"/>`
+            :tc.shape==='bar'
+            ?`<rect x="${tc.x}" y="${tc.y}" width="${tc.w}" height="${tc.h}" rx="4" fill="#1a1a1a" stroke="${col}" stroke-width="1.5"/>`
             :`<rect x="${tc.x}" y="${tc.y}" width="${tc.w}" height="${tc.h}" rx="${tc.shape==='rounded'?8:5}" fill="#1e1e1e" stroke="${col}" stroke-width="2"/>`;
 
           const cx=tc.x+tc.w/2, cy=tc.y+tc.h/2;
           let labelY=cy+(t.status==='free'?4:-3);
           if(tc.shape==='vertical') labelY=cy;
-          const label=`<text x="${cx}" y="${labelY}" text-anchor="middle" font-size="13" font-weight="700" fill="${col}" font-family="-apple-system,sans-serif">${tc.id}</text>`;
+          if(tc.shape==='bar') labelY=cy+4;
+          const labelTxt = tc.shape==='bar' ? (lang==='ru'?'БАР':'BAR') : String(tc.id);
+          const label=`<text x="${cx}" y="${labelY}" text-anchor="middle" font-size="${tc.shape==='bar'?9:13}" font-weight="700" fill="${col}" font-family="-apple-system,sans-serif">${labelTxt}</text>`;
           const sub=t.status==='occupied'
             ?`<text x="${cx}" y="${cy+11}" text-anchor="middle" font-size="8" fill="${col}">${tot} ₽</text>`
             :t.status==='reserved'
@@ -1879,8 +1893,17 @@
               <div style="font-size:15px;font-weight:600;margin-bottom:6px">${lang==='ru'?item.ru:item.en}</div>
               <div style="font-size:14px;color:var(--gold);font-weight:700">${item.price} ₽</div>
             </div>
-            <button onclick="doAddOrder('${item.id}','${item.ru}','${item.en}',${item.price},'${item.cat}')" style="background:var(--gold);border:none;border-radius:40px;width:44px;height:44px;font-size:22px;cursor:pointer;color:#0A0A0A;flex-shrink:0;transition:var(--transition);font-weight:700">+</button>
+            <button onclick="addItemFromBtn(this)" data-id="${item.id}" data-ru="${encodeURIComponent(item.ru)}" data-en="${encodeURIComponent(item.en)}" data-price="${item.price}" data-cat="${item.cat}" style="background:var(--gold);border:none;border-radius:40px;width:44px;height:44px;font-size:22px;cursor:pointer;color:#0A0A0A;flex-shrink:0;transition:var(--transition);font-weight:700">+</button>
           </div>`).join('')}
+        </div>
+
+        <div class="card" style="margin-top:12px;border-radius:20px;padding:14px">
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">${lang==='ru'?'➕ Добавить позицию вручную':'➕ Add custom item'}</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="custom-item-name" class="inp" style="flex:2;border-radius:40px;font-size:13px;padding:10px 12px" placeholder="${lang==='ru'?'Название...':'Name...'}"/>
+            <input id="custom-item-price" type="number" class="inp" style="flex:1;border-radius:40px;font-size:13px;padding:10px 8px;text-align:center" placeholder="₽"/>
+            <button onclick="addCustomItem()" style="background:var(--gold);border:none;border-radius:40px;width:40px;height:40px;font-size:20px;cursor:pointer;color:#0A0A0A;flex-shrink:0;font-weight:700">+</button>
+          </div>
         </div>
 
         ${t.orders?.length>0 ? `
@@ -1928,18 +1951,44 @@
       }
 
       function renderMenuItemHTML(item) {
-        const nameRu = item.ru.replace(/'/g, String.fromCharCode(39));
-        const nameEn = item.en.replace(/'/g, String.fromCharCode(39));
         const label = lang === 'ru' ? item.ru : item.en;
-        return [
-          '<div class="card" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:14px 16px;border-radius:20px">',
-            '<div>',
-              '<div style="font-size:15px;font-weight:600;margin-bottom:6px">' + label + '</div>',
-              '<div style="font-size:14px;color:var(--gold);font-weight:700">' + item.price + ' ₽</div>',
-            '</div>',
-            '<button onclick="doAddOrder(' + JSON.stringify(item.id) + ',' + JSON.stringify(nameRu) + ',' + JSON.stringify(nameEn) + ',' + item.price + ',' + JSON.stringify(item.cat) + ')" style="background:var(--gold);border:none;border-radius:40px;width:44px;height:44px;font-size:22px;cursor:pointer;color:#0A0A0A;flex-shrink:0;transition:var(--transition);font-weight:700">+</button>',
-          '</div>'
-        ].join('');
+        return '<div class="card" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:14px 16px;border-radius:20px">'
+          + '<div>'
+          + '<div style="font-size:15px;font-weight:600;margin-bottom:6px">' + label + '</div>'
+          + '<div style="font-size:14px;color:var(--gold);font-weight:700">' + item.price + ' ₽</div>'
+          + '</div>'
+          + '<button onclick="addItemFromBtn(this)"'
+          + ' data-id="' + encodeURIComponent(item.id) + '"'
+          + ' data-ru="' + encodeURIComponent(item.ru) + '"'
+          + ' data-en="' + encodeURIComponent(item.en) + '"'
+          + ' data-price="' + item.price + '"'
+          + ' data-cat="' + encodeURIComponent(item.cat) + '"'
+          + ' style="background:var(--gold);border:none;border-radius:40px;width:44px;height:44px;font-size:22px;cursor:pointer;color:#0A0A0A;flex-shrink:0;transition:var(--transition);font-weight:700">+</button>'
+          + '</div>';
+      }
+
+      function addItemFromBtn(btn) {
+        const id    = decodeURIComponent(btn.dataset.id);
+        const ru    = decodeURIComponent(btn.dataset.ru);
+        const en    = decodeURIComponent(btn.dataset.en);
+        const price = parseFloat(btn.dataset.price);
+        const cat   = decodeURIComponent(btn.dataset.cat);
+        doAddOrder(id, ru, en, price, cat);
+      }
+
+      function addCustomItem() {
+        const nameEl = document.getElementById('custom-item-name');
+        const priceEl = document.getElementById('custom-item-price');
+        if (!nameEl || !priceEl) return;
+        const name = nameEl.value.trim();
+        const price = parseFloat(priceEl.value);
+        if (!name) { toast(lang==='ru'?'⚠️ Введите название':'⚠️ Enter a name'); return; }
+        if (!price || price <= 0) { toast(lang==='ru'?'⚠️ Введите цену':'⚠️ Enter a price'); return; }
+        const customId = 'custom_' + Date.now();
+        doAddOrder(customId, name, name, price, 'custom');
+        nameEl.value = '';
+        priceEl.value = '';
+        toast(lang==='ru'?'✅ Добавлено':'✅ Added');
       }
 
       function setMenuGroup(group) {
@@ -2050,10 +2099,10 @@
         <div class="card" style="margin-bottom:20px;border-radius:24px">
           <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;font-weight:600">${T('cashReceived')}</div>
           <input type="number" class="inp" style="font-size:24px;font-weight:800;text-align:center;margin-bottom:14px;border-radius:40px" value="${cashGiven}" placeholder="0" oninput="setCashGiven(this.value)"/>
-          ${given>=disc?`<div class="change-box"><span style="font-size:14px;font-weight:600;color:var(--text-secondary)">${T('change')}</span><span style="font-size:24px;font-weight:800;color:var(--green)">${change.toFixed(0)} ₽</span></div>`:''}
-          ${cashGiven && given<disc?`<div style="text-align:center;color:var(--red);font-size:13px;margin-top:10px;font-weight:600">${T('notEnough')} (${(disc-given).toFixed(0)} ₽)</div>`:''}
+          <div id="cash-change-box" class="change-box" style="display:${given>=disc?'flex':'none'}"><span style="font-size:14px;font-weight:600;color:var(--text-secondary)">${T('change')}</span><span id="change-value" style="font-size:24px;font-weight:800;color:var(--green)">${change.toFixed(0)} ₽</span></div>
+          <div id="cash-not-enough" style="display:${cashGiven&&given<disc?'block':'none'};text-align:center;color:var(--red);font-size:13px;margin-top:10px;font-weight:600">${T('notEnough')} (${(disc-given).toFixed(0)} ₽)</div>
         </div>`:''}
-        <button class="btn btn-gold" ${!payMethod||(payMethod==='cash'&&given<disc)?'disabled style="opacity:0.5;border-radius:40px"':''} onclick="doConfirmPay()" style="border-radius:40px">
+        <button id="btn-confirm-pay" class="btn btn-gold" ${!payMethod||(payMethod==='cash'&&given<disc)?'disabled style="opacity:0.5;border-radius:40px"':''} onclick="doConfirmPay()" style="border-radius:40px">
           ${T('paid')}
         </button>
         <button class="btn btn-outline" onclick="backToBill()" style="border-radius:40px">${T('cancel')}</button>`;
@@ -2388,7 +2437,32 @@
       function goBill(id){ billTable=id; расчётTable=null; payMethod=null; cashGiven=''; renderContent(); }
       function backToBill(){ расчётTable=billTable; billTable=null; renderContent(); }
       function setPayMethod(m){ payMethod=m; cashGiven=''; renderContent(); }
-      function setCashGiven(v){ cashGiven=v; renderContent(); }
+      function setCashGiven(v){
+        cashGiven = v;
+        // Mettre à jour seulement les éléments affectés, sans re-render complet
+        const t = tables.find(t=>t.id===billTable);
+        if (!t) return;
+        const disc = tableTotal(t, true);
+        const given = parseFloat(v) || 0;
+        const change = given - disc;
+        const changeBox = document.getElementById('cash-change-box');
+        const notEnoughBox = document.getElementById('cash-not-enough');
+        const confirmBtn = document.getElementById('btn-confirm-pay');
+        if (changeBox) {
+          changeBox.style.display = given >= disc ? 'flex' : 'none';
+          const changeVal = changeBox.querySelector('#change-value');
+          if (changeVal) changeVal.textContent = change.toFixed(0) + ' ₽';
+        }
+        if (notEnoughBox) {
+          notEnoughBox.style.display = (v && given < disc) ? 'block' : 'none';
+          notEnoughBox.textContent = T('notEnough') + ' (' + (disc - given).toFixed(0) + ' ₽)';
+        }
+        if (confirmBtn) {
+          const disabled = !payMethod || (payMethod === 'cash' && given < disc);
+          confirmBtn.disabled = disabled;
+          confirmBtn.style.opacity = disabled ? '0.5' : '1';
+        }
+      }
       function openTableDetail(id){ tableDetailId=id; tableDetailTab='info'; selTable=null; renderContent(); }
       function closeTableDetail(){ tableDetailId=null; renderContent(); }
       function setTableDetailTab(t){ tableDetailTab=t; renderContent(); }
