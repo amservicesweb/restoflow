@@ -104,14 +104,28 @@
           gap: 10px;
         }
         .date-item {
-          min-width: 100%;
+          width: 100%;
+          flex: none;
+        }
+        .date-item .inp {
+          width: 100%;
+          box-sizing: border-box;
+          font-size: 14px;
         }
         .equal-row {
-          flex-direction: column;
-          gap: 12px;
+          flex-direction: row;
+          gap: 10px;
         }
         .equal-item {
-          min-width: 100%;
+          flex: 1;
+          min-width: 0;
+        }
+        .equal-item .inp {
+          width: 100%;
+          box-sizing: border-box;
+          font-size: 13px;
+          padding-left: 10px;
+          padding-right: 10px;
         }
         .table-buttons {
           gap: 8px;
@@ -597,7 +611,8 @@
 
       .date-item {
         flex: 1;
-        min-width: 130px;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .equal-row {
@@ -610,17 +625,14 @@
       .equal-item {
         flex: 1;
         min-width: 0;
-        overflow: hidden;
+        max-width: 100%;
       }
 
       .equal-item .inp {
         width: 100%;
         min-width: 0;
-        font-size: 13px;
-        padding-left: 10px;
-        padding-right: 10px;
-        text-overflow: ellipsis;
-        overflow: hidden;
+        font-size: 14px;
+        box-sizing: border-box;
       }
 
       .table-buttons {
@@ -2336,6 +2348,7 @@
       }
 
       async function doSaveBronFromForm(){
+        if(_actionLock) return;
         const name = document.getElementById('bron-name')?.value;
         const phone = document.getElementById('bron-phone')?.value;
         const date = document.getElementById('bron-date')?.value;
@@ -2347,31 +2360,36 @@
         if(!bronTableId){ toast(lang==='ru'?'⚠️ Выберите стол':'⚠️ Select a table'); return; }
         if(!date){ toast(lang==='ru'?'⚠️ Выберите дату':'⚠️ Select date'); return; }
         if(!time){ toast(lang==='ru'?'⚠️ Выберите время':'⚠️ Select time'); return; }
-
-        if(_actionLock) return;
         if(!isWorkingHours(time)){
           toast(lang==='ru'?'❌ Ресторан работает с 12:00 до 03:00':'❌ Restaurant works from 12:00 to 03:00');
           return;
         }
 
-        try {
-          await dbSaveBron(bronTableId, {name, phone, date, time, guests, note});
-          bronForm={name:'', phone:'', guests:'2', date:'', time:'19:00', note:''};
-          bronTableId=null;
-          bronTab='list';
-          toast(lang==='ru'?'✅ Бронь сохранена':'✅ Booking saved');
-          tab='bron';
-          renderMain();
-        } catch(e){
-          if (e.message && e.message.startsWith('Double booking')) {
-            const existTime = e.message.split(':')[1] || '';
-            toast(lang==='ru'
-              ? ('❌ Стол №' + bronTableId + ' уже забронирован' + (existTime ? ' в ' + existTime : '') + ' на эту дату')
-              : ('❌ Table #' + bronTableId + ' already booked' + (existTime ? ' at ' + existTime : '') + ' on this date'));
-          } else {
-            toast('❌ Error: '+e.message);
+        // Désactiver le bouton visuellement
+        const saveBtn = document.querySelector('[onclick="doSaveBronFromForm()"]');
+        if(saveBtn){ saveBtn.disabled=true; saveBtn.style.opacity='0.5'; }
+
+        await withLock(async () => {
+          try {
+            await dbSaveBron(bronTableId, {name, phone, date, time, guests, note});
+            bronForm={name:'', phone:'', guests:'2', date:'', time:'19:00', note:''};
+            bronTableId=null;
+            bronTab='list';
+            toast(lang==='ru'?'✅ Бронь сохранена':'✅ Booking saved');
+            tab='bron';
+            renderMain();
+          } catch(e){
+            if(saveBtn){ saveBtn.disabled=false; saveBtn.style.opacity='1'; }
+            if (e.message && e.message.startsWith('Double booking')) {
+              const existTime = e.message.split(':')[1] || '';
+              toast(lang==='ru'
+                ? ('❌ Стол №' + bronTableId + ' уже забронирован' + (existTime ? ' в ' + existTime : '') + ' на эту дату')
+                : ('❌ Table #' + bronTableId + ' already booked' + (existTime ? ' at ' + existTime : '') + ' on this date'));
+            } else {
+              toast('❌ Error: '+e.message);
+            }
           }
-        }
+        });
       }
 
       async function doOpenTable(id){
