@@ -101,31 +101,25 @@
         }
         .date-range {
           flex-direction: column;
-          gap: 10px;
+          gap: 8px;
         }
         .date-item {
           width: 100%;
           flex: none;
+          min-width: 0;
         }
         .date-item .inp {
           width: 100%;
           box-sizing: border-box;
-          font-size: 14px;
         }
         .equal-row {
           flex-direction: row;
-          gap: 10px;
+          gap: 8px;
         }
         .equal-item {
           flex: 1;
           min-width: 0;
-        }
-        .equal-item .inp {
-          width: 100%;
-          box-sizing: border-box;
-          font-size: 13px;
-          padding-left: 10px;
-          padding-right: 10px;
+          overflow: hidden;
         }
         .table-buttons {
           gap: 8px;
@@ -343,6 +337,23 @@
         font-size: 15px;
         color: var(--text);
         width: 100%;
+      }
+
+      /* Champs date/time : forcer taille et couper texte iOS */
+      input[type="date"],
+      input[type="time"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        font-size: 13px !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .inp:focus {
@@ -612,7 +623,7 @@
       .date-item {
         flex: 1;
         min-width: 0;
-        max-width: 100%;
+        overflow: hidden;
       }
 
       .equal-row {
@@ -625,13 +636,12 @@
       .equal-item {
         flex: 1;
         min-width: 0;
-        max-width: 100%;
+        overflow: hidden;
       }
 
       .equal-item .inp {
         width: 100%;
         min-width: 0;
-        font-size: 14px;
         box-sizing: border-box;
       }
 
@@ -2097,8 +2107,8 @@
           <input class="inp phone-inp" style="margin-bottom:20px;border-radius:40px" id="bron-phone" value="${bronForm.phone}" placeholder="+7 ___ ___ __ __" oninput="handlePhoneInput(this)"/>
 
           <div class="equal-row">
-            <div class="equal-item"><label class="lbl">${T('date')}</label><input type="date" class="inp" id="bron-date" value="${today}" min="${today}" style="border-radius:40px;width:100%;box-sizing:border-box"/></div>
-            <div class="equal-item"><label class="lbl">${T('time')}</label><input type="time" class="inp" id="bron-time" value="${bronForm.time}" min="12:00" max="23:59" style="border-radius:40px;width:100%;box-sizing:border-box"/></div>
+            <div class="equal-item"><label class="lbl">${T('date')}</label><input type="date" class="inp" id="bron-date" value="${today}" min="${today}" style="border-radius:40px;width:100%;box-sizing:border-box;font-size:13px;padding:12px 8px;text-align:center"/></div>
+            <div class="equal-item"><label class="lbl">${T('time')}</label><input type="time" class="inp" id="bron-time" value="${bronForm.time}" min="12:00" max="23:59" style="border-radius:40px;width:100%;box-sizing:border-box;font-size:13px;padding:12px 8px;text-align:center"/></div>
           </div>
 
           <div class="equal-row">
@@ -2144,8 +2154,8 @@
             ${['today','week','month','year'].map(p=>`<button class="toggle-btn ${analyticsTab===p?'active':''}" onclick="setAnalyticsPreset('${p}')" style="border-radius:40px">${T(p)}</button>`).join('')}
           </div>
           <div class="date-range">
-            <div class="date-item"><label class="lbl">${T('from')}</label><input type="date" class="inp" id="analytics-from" value="${analyticsFrom}" style="border-radius:40px;font-size:12px;width:100%;box-sizing:border-box"/></div>
-            <div class="date-item"><label class="lbl">${T('to')}</label><input type="date" class="inp" id="analytics-to" value="${analyticsTo}" style="border-radius:40px;font-size:12px;width:100%;box-sizing:border-box"/></div>
+            <div class="date-item"><label class="lbl">${T('from')}</label><input type="date" class="inp" id="analytics-from" value="${analyticsFrom}" style="border-radius:40px;width:100%;box-sizing:border-box;font-size:13px;padding:12px 10px;text-align:center"/></div>
+            <div class="date-item"><label class="lbl">${T('to')}</label><input type="date" class="inp" id="analytics-to" value="${analyticsTo}" style="border-radius:40px;width:100%;box-sizing:border-box;font-size:13px;padding:12px 10px;text-align:center"/></div>
           </div>
           <button class="btn btn-gold" onclick="doLoadAnalyticsFromDates()" style="border-radius:40px">${lang==='ru'?'Показать':'Show'}</button>
         </div>
@@ -2348,7 +2358,6 @@
       }
 
       async function doSaveBronFromForm(){
-        if(_actionLock) return;
         const name = document.getElementById('bron-name')?.value;
         const phone = document.getElementById('bron-phone')?.value;
         const date = document.getElementById('bron-date')?.value;
@@ -2360,36 +2369,31 @@
         if(!bronTableId){ toast(lang==='ru'?'⚠️ Выберите стол':'⚠️ Select a table'); return; }
         if(!date){ toast(lang==='ru'?'⚠️ Выберите дату':'⚠️ Select date'); return; }
         if(!time){ toast(lang==='ru'?'⚠️ Выберите время':'⚠️ Select time'); return; }
+
+        if(_actionLock) return;
         if(!isWorkingHours(time)){
           toast(lang==='ru'?'❌ Ресторан работает с 12:00 до 03:00':'❌ Restaurant works from 12:00 to 03:00');
           return;
         }
 
-        // Désactiver le bouton visuellement
-        const saveBtn = document.querySelector('[onclick="doSaveBronFromForm()"]');
-        if(saveBtn){ saveBtn.disabled=true; saveBtn.style.opacity='0.5'; }
-
-        await withLock(async () => {
-          try {
-            await dbSaveBron(bronTableId, {name, phone, date, time, guests, note});
-            bronForm={name:'', phone:'', guests:'2', date:'', time:'19:00', note:''};
-            bronTableId=null;
-            bronTab='list';
-            toast(lang==='ru'?'✅ Бронь сохранена':'✅ Booking saved');
-            tab='bron';
-            renderMain();
-          } catch(e){
-            if(saveBtn){ saveBtn.disabled=false; saveBtn.style.opacity='1'; }
-            if (e.message && e.message.startsWith('Double booking')) {
-              const existTime = e.message.split(':')[1] || '';
-              toast(lang==='ru'
-                ? ('❌ Стол №' + bronTableId + ' уже забронирован' + (existTime ? ' в ' + existTime : '') + ' на эту дату')
-                : ('❌ Table #' + bronTableId + ' already booked' + (existTime ? ' at ' + existTime : '') + ' on this date'));
-            } else {
-              toast('❌ Error: '+e.message);
-            }
+        try {
+          await dbSaveBron(bronTableId, {name, phone, date, time, guests, note});
+          bronForm={name:'', phone:'', guests:'2', date:'', time:'19:00', note:''};
+          bronTableId=null;
+          bronTab='list';
+          toast(lang==='ru'?'✅ Бронь сохранена':'✅ Booking saved');
+          tab='bron';
+          renderMain();
+        } catch(e){
+          if (e.message && e.message.startsWith('Double booking')) {
+            const existTime = e.message.split(':')[1] || '';
+            toast(lang==='ru'
+              ? ('❌ Стол №' + bronTableId + ' уже забронирован' + (existTime ? ' в ' + existTime : '') + ' на эту дату')
+              : ('❌ Table #' + bronTableId + ' already booked' + (existTime ? ' at ' + existTime : '') + ' on this date'));
+          } else {
+            toast('❌ Error: '+e.message);
           }
-        });
+        }
       }
 
       async function doOpenTable(id){
