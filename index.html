@@ -101,17 +101,32 @@
         }
         .date-range {
           flex-direction: column;
-          gap: 10px;
+          gap: 8px;
         }
         .date-item {
-          min-width: 100%;
+          width: 100%;
+          flex: none;
+          min-width: 0;
+        }
+        .date-item .inp {
+          width: 100%;
+          box-sizing: border-box;
         }
         .equal-row {
-          flex-direction: column;
-          gap: 12px;
+          flex-direction: row;
+          gap: 8px;
         }
         .equal-item {
-          min-width: 100%;
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+        }
+        .equal-item .inp {
+          width: 100%;
+          box-sizing: border-box;
+          font-size: 13px;
+          padding: 12px 6px;
+          text-align: center;
         }
         .table-buttons {
           gap: 8px;
@@ -335,6 +350,26 @@
         border-color: var(--gold);
         background: rgba(255, 255, 255, 0.08);
         box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+      }
+
+      /* iOS : forcer les inputs date/time à rester dans leur boîte */
+      input[type="date"],
+      input[type="time"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        font-size: 13px;
+        padding: 12px 8px;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      input[type="date"]::-webkit-date-and-time-value,
+      input[type="time"]::-webkit-date-and-time-value {
+        text-align: center;
       }
 
       .lbl {
@@ -597,7 +632,8 @@
 
       .date-item {
         flex: 1;
-        min-width: 130px;
+        min-width: 0;
+        overflow: hidden;
       }
 
       .equal-row {
@@ -880,7 +916,7 @@
       .card,
       .floor-container,
       .metric {
-        animation: fadeInUp 0.4s ease;
+        animation: none;
       }
     </style>
   </head>
@@ -1233,21 +1269,32 @@
 
       // ===== SUPABASE FUNCTIONS =====
       async function loadTables() {
-        const {data} = await sb.from('tables').select('*, orders(*)').order('id');
+        const [{data}, {data:brons}] = await Promise.all([
+          sb.from('tables').select('*, orders(*)').order('id'),
+          sb.from('brons').select('*').eq('status','active')
+        ]);
         if(data) {
-          const {data:brons} = await sb.from('brons').select('*').eq('status','active');
           tables = data.map(t => ({
             ...t,
             orders: t.orders||[],
             brons: (brons||[]).filter(b=>b.table_id===t.id && b.status === 'active')
           }));
-          render();
+          // Si déjà connecté, juste mettre à jour le contenu
+          if (screen === 'main' && $('content')) {
+            renderContent();
+          } else {
+            render();
+          }
         }
       }
 
+      let _realtimeDebounce = null;
       function subscribeRealtime() {
         subTables = sb.channel('tables-channel')
-          .on('postgres_changes',{event:'*',schema:'public'},()=>{ loadTables(); })
+          .on('postgres_changes',{event:'*',schema:'public'},()=>{
+            if (_realtimeDebounce) clearTimeout(_realtimeDebounce);
+            _realtimeDebounce = setTimeout(() => loadTables(), 400);
+          })
           .subscribe();
       }
 
@@ -2170,8 +2217,8 @@
           <input class="inp phone-inp" style="margin-bottom:20px;border-radius:40px" id="bron-phone" value="${bronForm.phone}" placeholder="+7 ___ ___ __ __" oninput="handlePhoneInput(this)"/>
 
           <div class="equal-row">
-            <div class="equal-item"><label class="lbl">${T('date')}</label><input type="date" class="inp" id="bron-date" value="${today}" min="${today}" style="border-radius:40px;width:100%;box-sizing:border-box"/></div>
-            <div class="equal-item"><label class="lbl">${T('time')}</label><input type="time" class="inp" id="bron-time" value="${bronForm.time}" min="12:00" max="23:59" style="border-radius:40px;width:100%;box-sizing:border-box"/></div>
+            <div class="equal-item"><label class="lbl">${T('date')}</label><input type="date" class="inp" id="bron-date" value="${today}" min="${today}" style="border-radius:40px;width:100%;box-sizing:border-box;font-size:13px;padding:12px 6px;text-align:center"/></div>
+            <div class="equal-item"><label class="lbl">${T('time')}</label><input type="time" class="inp" id="bron-time" value="${bronForm.time}" min="12:00" max="23:59" style="border-radius:40px;width:100%;box-sizing:border-box;font-size:13px;padding:12px 6px;text-align:center"/></div>
           </div>
 
           <div class="equal-row">
@@ -2217,8 +2264,8 @@
             ${['today','week','month','year'].map(p=>`<button class="toggle-btn ${analyticsTab===p?'active':''}" onclick="setAnalyticsPreset('${p}')" style="border-radius:40px">${T(p)}</button>`).join('')}
           </div>
           <div class="date-range">
-            <div class="date-item"><label class="lbl">${T('from')}</label><input type="date" class="inp" id="analytics-from" value="${analyticsFrom}" style="border-radius:40px;font-size:12px;width:100%;box-sizing:border-box"/></div>
-            <div class="date-item"><label class="lbl">${T('to')}</label><input type="date" class="inp" id="analytics-to" value="${analyticsTo}" style="border-radius:40px;font-size:12px;width:100%;box-sizing:border-box"/></div>
+            <div class="date-item"><label class="lbl">${T('from')}</label><input type="date" class="inp" id="analytics-from" value="${analyticsFrom}" style="border-radius:40px;width:100%;box-sizing:border-box;font-size:13px;padding:12px 8px;text-align:center"/></div>
+            <div class="date-item"><label class="lbl">${T('to')}</label><input type="date" class="inp" id="analytics-to" value="${analyticsTo}" style="border-radius:40px;width:100%;box-sizing:border-box;font-size:13px;padding:12px 8px;text-align:center"/></div>
           </div>
           <button class="btn btn-gold" onclick="doLoadAnalyticsFromDates()" style="border-radius:40px">${lang==='ru'?'Показать':'Show'}</button>
         </div>
