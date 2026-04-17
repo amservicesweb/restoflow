@@ -1279,6 +1279,7 @@
 
       // ===== SUPABASE FUNCTIONS =====
       async function loadTables() {
+        if (_syncInProgress > 0) return;
         const [{data}, {data:brons}] = await Promise.all([
           sb.from('tables').select('*, orders(*)').order('id'),
           sb.from('brons').select('*').eq('status','active')
@@ -1324,13 +1325,19 @@
         renderContent();
       }
 
-      // Sync en arrière-plan sans bloquer l'UI
+      // Compteur de syncs en cours — bloque loadTables pendant ce temps
+      let _syncInProgress = 0;
+
       function syncBackground(fn) {
-        fn().catch(err => {
-          console.error('Sync error:', err);
-          // En cas d'erreur, recharger depuis Supabase
-          loadTables();
-        });
+        _syncInProgress++;
+        fn()
+          .catch(err => {
+            console.error('Sync error:', err);
+            loadTables();
+          })
+          .finally(() => {
+            _syncInProgress = Math.max(0, _syncInProgress - 1);
+          });
       }
 
       async function dbAddOrder(tableId, item, cat) {
@@ -1407,16 +1414,7 @@
       }
 
       async function dbConfirmPay(tableId, method, raw, final, disc, given, chg, clientPhone) {
-        // Snapshot des orders AVANT de vider la table
-        const t = tables.find(t => t.id === tableId);
-        const ordersSnapshot = (t?.orders || []).map(o => ({...o}));
-
-        // Optimistic: vider la table immédiatement
-        updateTableLocally(tableId, t => ({
-          status:'free', waiter_id:null, discount:0, orders:[]
-        }));
-
-        // Insérer le paiement
+        // Insérer le paiement dans Supabase
         const {data: paymentData, error} = await sb.from('payments').insert({
           table_id: tableId,
           waiter_id: waiter.id,
@@ -1426,25 +1424,27 @@
         }).select('id').single();
 
         if (error) {
+          console.error('Payment insert error:', error);
           toast('❌ ' + (lang==='ru' ? 'Ошибка сохранения' : 'Save error'));
           await loadTables();
           return;
         }
 
+        // Archiver les items + supprimer les orders en arrière-plan
         syncBackground(async () => {
-          // Archiver les produits dans payment_items avant suppression
-          if (paymentData?.id && ordersSnapshot.length > 0) {
-            const items = ordersSnapshot.map(o => ({
+          // Récupérer les orders actuelles pour archivage
+          const {data: currentOrders} = await sb.from('orders').select('*').eq('table_id', tableId);
+          if (paymentData?.id && currentOrders && currentOrders.length > 0) {
+            await sb.from('payment_items').insert(currentOrders.map(o => ({
               payment_id: paymentData.id,
               table_id: tableId,
-              item_id: o.item_id || o.id,
-              item_name_ru: o.item_name_ru || o.ru || '',
-              item_name_en: o.item_name_en || o.en || '',
+              item_id: o.item_id || '',
+              item_name_ru: o.item_name_ru || '',
+              item_name_en: o.item_name_en || '',
               category: o.category || '',
               price: o.price || 0,
               qty: o.qty || 1
-            }));
-            await sb.from('payment_items').insert(items);
+            }))).catch(() => {}); // table optionnelle
           }
           await sb.from('orders').delete().eq('table_id', tableId);
           await sb.from('tables').update({status:'free', waiter_id:null, discount:0}).eq('id', tableId);
@@ -2621,64 +2621,101 @@
         if(_actionLock) return;
         if(!payMethod) return;
         _actionLock = true;
-        const t=tables.find(t=>t.id===billTable);
+
+        const t = tables.find(t=>t.id===billTable);
         const isBar = billTable === 8;
-        // Pour le bar, calculer le total du slot seulement
-        const slotOrders = isBar ? (t.orders||[]).filter(o=>(o.bar_slot||1)===barSlot) : null;
-        const raw  = isBar ? slotOrders.reduce((s,o)=>s+o.price*o.qty,0) : tableTotal(t,false);
-        const disc = isBar ? raw : tableTotal(t,true);
-        const given=parseFloat(cashGiven)||0;
+        const savedBillTable = billTable;
+        const savedMethod = payMethod;
+        const savedSlot = barSlot;
+
+        let raw, disc, slotOrders, remainingOrders;
+
+        if(isBar){
+          slotOrders = (t.orders||[]).filter(o=>(o.bar_slot||1)===savedSlot);
+          remainingOrders = (t.orders||[]).filter(o=>(o.bar_slot||1)!==savedSlot);
+          raw = slotOrders.reduce((s,o)=>s+o.price*o.qty,0);
+          disc = raw; // pas de remise globale sur le bar
+        } else {
+          raw = tableTotal(t, false);
+          disc = tableTotal(t, true);
+          slotOrders = null;
+          remainingOrders = [];
+        }
+
+        const given = parseFloat(cashGiven)||0;
         if(payMethod==='cash' && given<disc){ _actionLock=false; return; }
 
-        const savedBillTable=billTable, savedMethod=payMethod, savedSlot=barSlot;
-        const savedOrders = isBar ? [...slotOrders] : null;
-        // Reste-t-il des orders sur d'autres slots ?
-        const remainingSlots = isBar
-          ? (t.orders||[]).filter(o=>(o.bar_slot||1)!==barSlot)
-          : [];
-
-        // Optimistic : retirer les orders du slot payé
+        // === OPTIMISTIC ===
         if(isBar){
-          updateTableLocally(savedBillTable, t=>({
-            orders:(t.orders||[]).filter(o=>(o.bar_slot||1)!==savedSlot),
-            status: remainingSlots.length>0?'occupied':'free',
-            waiter_id: remainingSlots.length>0?t.waiter_id:null,
-            discount: remainingSlots.length>0?t.discount:0
+          updateTableLocally(savedBillTable, tbl=>({
+            orders: remainingOrders,
+            status: remainingOrders.length>0 ? 'occupied' : 'free',
+            waiter_id: remainingOrders.length>0 ? tbl.waiter_id : null,
+            discount: remainingOrders.length>0 ? tbl.discount : 0
+          }));
+        } else {
+          updateTableLocally(savedBillTable, ()=>({
+            status:'free', waiter_id:null, discount:0, orders:[]
           }));
         }
 
-        toast(isBar && remainingSlots.length>0
+        // Navigation immédiate
+        const stillActive = isBar && remainingOrders.length > 0;
+        toast(stillActive
           ? (lang==='ru'?'✅ Гость '+savedSlot+' оплачен':'✅ Guest '+savedSlot+' paid')
           : (lang==='ru'?'✅ Стол закрыт':'✅ Table closed'));
         billTable=null; payMethod=null; cashGiven='';
-        if(!isBar || remainingSlots.length===0){ selTable=null; tab='tables'; renderMain(); }
-        else { renderContent(); }
+        if(stillActive){ renderContent(); }
+        else { selTable=null; tab='tables'; renderMain(); }
 
+        // === SYNC SUPABASE ===
         try {
-          // Enregistrer le paiement
-          const {data:pd} = await sb.from('payments').insert({
-            table_id:savedBillTable, waiter_id:waiter.id,
-            total_final:disc, payment_method:savedMethod, paid_at:nowMoscow()
+          // 1. Enregistrer le paiement
+          const {data:pd, error:pe} = await sb.from('payments').insert({
+            table_id: savedBillTable,
+            waiter_id: waiter.id,
+            total_final: disc,
+            payment_method: savedMethod,
+            paid_at: nowMoscow()
           }).select('id').single();
-          // Archiver les items du slot
-          if(pd?.id && savedOrders && savedOrders.length>0){
-            await sb.from('payment_items').insert(savedOrders.map(o=>({
-              payment_id:pd.id, table_id:savedBillTable,
-              item_id:o.item_id||o.id, item_name_ru:o.item_name_ru||'',
-              item_name_en:o.item_name_en||'', category:o.category||'',
-              price:o.price||0, qty:o.qty||1, bar_slot:savedSlot
-            }))).catch(()=>{}); // payment_items peut ne pas exister encore
+
+          if(pe){ console.error('Payment error:', pe); _actionLock=false; return; }
+
+          // 2. Archiver les items (optionnel — si table payment_items existe)
+          if(pd?.id){
+            const itemsToArchive = isBar ? slotOrders : (t.orders||[]);
+            if(itemsToArchive && itemsToArchive.length>0){
+              await sb.from('payment_items').insert(itemsToArchive.map(o=>({
+                payment_id: pd.id,
+                table_id: savedBillTable,
+                item_id: o.item_id || '',
+                item_name_ru: o.item_name_ru || '',
+                item_name_en: o.item_name_en || '',
+                category: o.category || '',
+                price: o.price || 0,
+                qty: o.qty || 1,
+                bar_slot: isBar ? savedSlot : null
+              }))).catch(()=>{}); // silencieux si table n'existe pas
+            }
           }
-          // Supprimer les orders du slot (ou toutes si table normale)
+
+          // 3. Supprimer les orders
           if(isBar){
-            const slotOrderIds = savedOrders.map(o=>o.id).filter(id=>!String(id).startsWith('temp_'));
-            if(slotOrderIds.length>0) await sb.from('orders').delete().in('id',slotOrderIds);
-            if(remainingSlots.length===0) await sb.from('tables').update({status:'free',waiter_id:null,discount:0}).eq('id',savedBillTable);
+            const ids = slotOrders
+              .map(o=>o.id)
+              .filter(id=>!String(id).startsWith('temp_'));
+            if(ids.length>0) await sb.from('orders').delete().in('id', ids);
+            if(remainingOrders.length===0){
+              await sb.from('tables').update({status:'free',waiter_id:null,discount:0}).eq('id',savedBillTable);
+            }
           } else {
-            await dbConfirmPay(savedBillTable,savedMethod,raw,disc,t.discount,given,given-disc,null);
-            return;
+            await sb.from('orders').delete().eq('table_id', savedBillTable);
+            await sb.from('tables').update({status:'free',waiter_id:null,discount:0}).eq('id',savedBillTable);
           }
+
           await loadTables();
+        } catch(e){
+          console.error('doConfirmPay error:', e);
         } finally {
           _actionLock = false;
         }
