@@ -1744,7 +1744,6 @@
           {id:1, x:rx, y:60,  w:TW+22, h:TH, shape:'rect'},
           {id:2, x:rx, y:150, w:TW+22, h:TH, shape:'rect'},
           {id:3, x:rx, y:240, w:TW+22, h:TH, shape:'rounded'},
-          {id:8, x:90,  y:H-52, w:164, h:18, shape:'bar'},
         ];
 
         const shapes=tcs.map(tc=>{
@@ -1757,34 +1756,24 @@
             sofasSVG=chair(tc.x-12,tc.y+8,10,20,col)+chair(tc.x+tc.w+2,tc.y+8,10,20,col);
           } else if(tc.shape==='vertical'){
             sofasSVG=sofaVertical(tc.x-SF-1,tc.y,SF,tc.h,col)+sofaVertical(tc.x+tc.w+1,tc.y,SF,tc.h,col);
-          } else if(tc.shape==='bar'){
-            // 4 tabourets au-dessus du bar
-            const sw=12, sg=(tc.w-4*sw)/5;
-            sofasSVG=[0,1,2,3].map(i=>`<ellipse cx="${tc.x+sg+(sw/2)+i*(sw+sg)}" cy="${tc.y-8}" rx="${sw/2}" ry="5" fill="${col}" fill-opacity="0.2" stroke="${col}" stroke-width="0.8" stroke-opacity="0.6"/>`).join('');
           } else {
             sofasSVG=sofaHorizontal(tc.x,tc.y-SF-1,tc.w,SF,col)+sofaHorizontal(tc.x,tc.y+tc.h+1,tc.w,SF,col);
           }
 
           const shadow=tc.shape==='round'
             ?`<circle cx="${tc.x+tc.w/2+2}" cy="${tc.y+tc.h/2+3}" r="${tc.w/2}" fill="#000" opacity="0.25"/>`
-            :tc.shape==='bar'
-            ?''
             :`<rect x="${tc.x+3}" y="${tc.y+3}" width="${tc.w}" height="${tc.h}" rx="${tc.shape==='rounded'?8:5}" fill="#000" opacity="0.25"/>`;
 
           const tableShape=tc.shape==='round'
             ?`<circle cx="${tc.x+tc.w/2}" cy="${tc.y+tc.h/2}" r="${tc.w/2}" fill="#1e1e1e" stroke="${col}" stroke-width="2"/>`
             :tc.shape==='vertical'
             ?`<rect x="${tc.x}" y="${tc.y}" width="${tc.w}" height="${tc.h}" rx="5" fill="#1e1e1e" stroke="${col}" stroke-width="2"/>`
-            :tc.shape==='bar'
-            ?`<rect x="${tc.x}" y="${tc.y}" width="${tc.w}" height="${tc.h}" rx="4" fill="#1a1a1a" stroke="${col}" stroke-width="1.5"/>`
             :`<rect x="${tc.x}" y="${tc.y}" width="${tc.w}" height="${tc.h}" rx="${tc.shape==='rounded'?8:5}" fill="#1e1e1e" stroke="${col}" stroke-width="2"/>`;
 
           const cx=tc.x+tc.w/2, cy=tc.y+tc.h/2;
           let labelY=cy+(t.status==='free'?4:-3);
           if(tc.shape==='vertical') labelY=cy;
-          if(tc.shape==='bar') labelY=cy+4;
-          const labelTxt = tc.shape==='bar' ? (lang==='ru'?'БАР':'BAR') : String(tc.id);
-          const label=`<text x="${cx}" y="${labelY}" text-anchor="middle" font-size="${tc.shape==='bar'?9:13}" font-weight="700" fill="${col}" font-family="-apple-system,sans-serif">${labelTxt}</text>`;
+          const label=`<text x="${cx}" y="${labelY}" text-anchor="middle" font-size="13" font-weight="700" fill="${col}" font-family="-apple-system,sans-serif">${tc.id}</text>`;
           const sub=t.status==='occupied'
             ?`<text x="${cx}" y="${cy+11}" text-anchor="middle" font-size="8" fill="${col}">${tot} ₽</text>`
             :t.status==='reserved'
@@ -1816,8 +1805,24 @@
           <rect x="230" y="1" width="80" height="11" rx="3" fill="#242424"/>
           <text x="270" y="9.5" text-anchor="middle" font-size="7.5" fill="#666" letter-spacing="1">ВХОД</text>
           <line x1="175" y1="14" x2="175" y2="${H-30}" stroke="#2e2e2e" stroke-width="1" stroke-dasharray="5,4"/>
-          <rect x="60" y="${H-28}" width="244" height="22" rx="5" fill="#1e1e1e" stroke="#3a3a3a" stroke-width="1"/>
-          <text x="182" y="${H-14}" text-anchor="middle" font-size="8.5" fill="#666" letter-spacing="2">БАР</text>
+          ${(()=>{
+            const tBar = tables.find(t=>t.id===8)||{status:'free',orders:[],discount:0};
+            const colBar = statusColor(tBar.status);
+            const totBar = tBar.status==='occupied' ? tableTotal(tBar,true) : 0;
+            const strokeBar = tBar.status==='free' ? '#3a3a3a' : colBar;
+            const fillBar = tBar.status==='free' ? '#1e1e1e' : '#1e1e1e';
+            const labelColor = tBar.status==='free' ? '#888' : colBar;
+            const subBar = tBar.status==='occupied'
+              ? `<text x="182" y="${H-8}" text-anchor="middle" font-size="7" fill="${colBar}">${totBar} ₽</text>`
+              : tBar.status==='reserved'
+              ? `<text x="182" y="${H-8}" text-anchor="middle" font-size="7" fill="${colBar}">бронь</text>`
+              : '';
+            return `<g onclick="selTableClick(8)" style="cursor:pointer">
+              <rect x="60" y="${H-28}" width="244" height="22" rx="5" fill="${fillBar}" stroke="${strokeBar}" stroke-width="${tBar.status==='free'?1:2}"/>
+              <text x="182" y="${H-14}" text-anchor="middle" font-size="8.5" font-weight="700" fill="${labelColor}" letter-spacing="2">${lang==='ru'?'БАР':'BAR'}</text>
+              ${subBar}
+            </g>`;
+          })()}
           ${shapes}
           ${neonText}
         </svg></div>`;
