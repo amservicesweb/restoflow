@@ -1404,24 +1404,46 @@
       }
 
       async function dbConfirmPay(tableId, method, raw, final, disc, given, chg, clientPhone) {
+        // Snapshot des orders AVANT de vider la table
+        const t = tables.find(t => t.id === tableId);
+        const ordersSnapshot = (t?.orders || []).map(o => ({...o}));
+
         // Optimistic: vider la table immédiatement
         updateTableLocally(tableId, t => ({
           status:'free', waiter_id:null, discount:0, orders:[]
         }));
-        // Sync Supabase (doit être attendu pour garantir l'enregistrement)
-        const {error} = await sb.from('payments').insert({
+
+        // Insérer le paiement
+        const {data: paymentData, error} = await sb.from('payments').insert({
           table_id: tableId,
           waiter_id: waiter.id,
           total_final: final,
           payment_method: method,
+          discount: disc || 0,
           paid_at: nowMoscow()
-        });
+        }).select('id').single();
+
         if (error) {
           toast('❌ ' + (lang==='ru' ? 'Ошибка сохранения' : 'Save error'));
           await loadTables();
           return;
         }
+
         syncBackground(async () => {
+          // Archiver les produits dans payment_items avant suppression
+          if (paymentData?.id && ordersSnapshot.length > 0) {
+            const items = ordersSnapshot.map(o => ({
+              payment_id: paymentData.id,
+              table_id: tableId,
+              item_id: o.item_id || o.id,
+              item_name_ru: o.item_name_ru || o.ru || '',
+              item_name_en: o.item_name_en || o.en || '',
+              category: o.category || '',
+              price: o.price || 0,
+              qty: o.qty || 1
+            }));
+            await sb.from('payment_items').insert(items);
+          }
           await sb.from('orders').delete().eq('table_id', tableId);
           await sb.from('tables').update({status:'free', waiter_id:null, discount:0}).eq('id', tableId);
           await loadTables();
